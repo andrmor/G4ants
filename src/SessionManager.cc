@@ -148,6 +148,10 @@ void SessionManager::ReadConfig(const std::string &ConfigFileName)
     if (!err.empty())
         terminateSession(err);
 
+    GDML = jo["GDML"].string_value();
+    if (GDML.empty())
+        terminateSession("GDML file name is not provided");
+
     //extracting name of the file with primaries to generate
     FileName_Input = jo["File_Primaries"].string_value();
     if (FileName_Input.empty())

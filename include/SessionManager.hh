@@ -37,6 +37,7 @@ class SessionManager
 
         void runSimulation();
 
+        const std::string & getGDML() const {return GDML;}
         const std::string & getEventId() const {return EventId;}
         void updateEventId();
         std::vector<ParticleRecord> & getNextEventPrimaries();
@@ -57,6 +58,7 @@ class SessionManager
         long Seed = 0;
         std::string EventId;
         std::string NextEventId;
+        std::string GDML;
         std::vector<G4ParticleDefinition*> ParticleCollection; // does not own
         std::vector<std::string> SensitiveVolumes;
         std::vector<std::string> DefinedParticles;

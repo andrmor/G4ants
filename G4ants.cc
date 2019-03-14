@@ -20,13 +20,13 @@ int main(int argc,char** argv)
     G4RunManager* runManager = new G4RunManager;
 
     SessionManager& SM = SessionManager::getInstance();
-    std::string ConfigFile = "/home/andr/G4antsKraken/testJson.json"; //from arg !!!
-    SM.ReadConfig(ConfigFile);
+    if (argc < 2)
+        SM.terminateSession("Config file not provided as the first argument");
+    SM.ReadConfig(argv[1]);
 
     G4GDMLParser parser;
-    //parser.Read("/home/andr/G4antsKraken/G64_mat.gdml", false); //false - no validation
-    parser.Read("/home/andr/G4antsKraken/My.gdml", false); //false - no validation
-
+    parser.Read(SM.getGDML(), false); //false - no validation
+    // need to implement own G4excpetion-based handler class  ->  SM.terminateSession("Error parsing GDML file");
     runManager->SetUserInitialization(new DetectorConstruction(parser.GetWorldVolume()));
 
     G4VModularPhysicsList* physicsList = new QGSP_BERT_HP; //FTFP_BERT //GSP_BIC_HP;
