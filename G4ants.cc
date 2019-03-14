@@ -19,9 +19,13 @@ int main(int argc,char** argv)
 
     G4RunManager* runManager = new G4RunManager;
 
+    SessionManager& SM = SessionManager::getInstance();
+    std::string ConfigFile = "/home/andr/G4antsKraken/testJson.json"; //from arg !!!
+    SM.ReadConfig(ConfigFile);
+
     G4GDMLParser parser;
-    //parser.Read("/home/andr/Geant4Work/G4Test-05/G64_mat.gdml", false); //false - no validation
-    parser.Read("/home/andr/Geant4Work/G4Test-05/My.gdml", false); //false - no validation
+    //parser.Read("/home/andr/G4antsKraken/G64_mat.gdml", false); //false - no validation
+    parser.Read("/home/andr/G4antsKraken/My.gdml", false); //false - no validation
 
     runManager->SetUserInitialization(new DetectorConstruction(parser.GetWorldVolume()));
 
@@ -29,29 +33,23 @@ int main(int argc,char** argv)
     physicsList->RegisterPhysics(new G4StepLimiterPhysics());
     runManager->SetUserInitialization(physicsList);
 
-    // Set user action classes
     runManager->SetUserInitialization(new ActionInitialization());
 
-    // Initialize visualization
-    G4VisManager* visManager = new G4VisExecutive("Quiet"); //G4VisExecutive can take a verbosity argument - see /vis/verbose guidance.
-    visManager->Initialize();
-
-    // Get the pointer to the User Interface manager
     G4UImanager* UImanager = G4UImanager::GetUIpointer();
+    UImanager->ApplyCommand("/run/initialize");
     UImanager->ApplyCommand("/control/verbose 0");
     UImanager->ApplyCommand("/run/verbose 0");
     UImanager->ApplyCommand("/hits/verbose 2");
     UImanager->ApplyCommand("/tracking/verbose 2"); //all details of the tracking
     UImanager->ApplyCommand("/control/saveHistory");
 
-    UImanager->ApplyCommand("/control/execute vis.mac"); //----------
+    // Initialize visualization
+    G4VisManager* visManager = new G4VisExecutive("Quiet"); //G4VisExecutive can take a verbosity argument - see /vis/verbose guidance.
+    visManager->Initialize();
 
-    SessionManager& SM = SessionManager::getInstance();
-    std::string ConfigFile = "/home/andr/Geant4Work/G4Test-05/testJson.json";
-    SM.startSession(ConfigFile);
+    UImanager->ApplyCommand("/control/execute vis.mac"); //---------
 
-    UImanager->ApplyCommand("/run/initialize");
-
+    SM.startSession();
     SM.runSimulation();
 
     ui->SessionStart();   //------------

@@ -24,10 +24,18 @@ SessionManager::~SessionManager()
     delete inStreamPrimaries;
 }
 
-void SessionManager::startSession(const std::string & ConfigFileName)
+void SessionManager::startSession()
 {
-    // read json configuration file
-    readConfig(ConfigFileName);
+    //populating particle collection
+    for (auto & name : DefinedParticles)
+    {
+        G4ParticleDefinition * pParticleDefinition = G4ParticleTable::GetParticleTable()->FindParticle(name);
+        if (!pParticleDefinition)
+        {
+            terminateSession(name + " - particle not found in Geant4 particle table!");
+        }
+        ParticleCollection.push_back(pParticleDefinition);
+    }
 
     // opening file with primaries
     prepareInputStream();
@@ -125,7 +133,7 @@ void SessionManager::sendLineToOutput(const std::stringstream & text)
     *outStreamDeposition << text.rdbuf() << std::endl;
 }
 
-void SessionManager::readConfig(const std::string &ConfigFileName)
+void SessionManager::ReadConfig(const std::string &ConfigFileName)
 {
     //opening config file
     std::ifstream in(ConfigFileName);
@@ -185,7 +193,6 @@ void SessionManager::readConfig(const std::string &ConfigFileName)
     //read and configure random gen seed
     if (jo.object_items().count("Seed") == 0)
         terminateSession("Seed is not provided in the config file");
-
     if (!jo["Seed"].is_number())
         terminateSession("Format error for the random generator seed in the config file");
     Seed = jo["Seed"].int_value();
@@ -194,21 +201,17 @@ void SessionManager::readConfig(const std::string &ConfigFileName)
     std::cout << "Random generator seed: " << Seed << std::endl;
 
     //extracting defined particles
-    ParticleCollection.clear();
-    std::vector<json11::Json> arr = jo["Particles"].array_items();
-    std::cout << "Number of defined particles: " << arr.size() << std::endl;
+    DefinedParticles.clear();
+    std::vector<json11::Json> arr = jo["Particles"].array_items();    
     if (arr.empty())
         terminateSession("No particles defined in the configuration file!");
-
     //populating particle collection
+    std::cout << "Config lists the following particles:" << std::endl;
     for (auto & j : arr)
     {
         std::string name = j.string_value();
         std::cout << name << std::endl;
-        G4ParticleDefinition * pParticleDefinition = G4ParticleTable::GetParticleTable()->FindParticle(name);
-        if (!pParticleDefinition)
-            terminateSession("Particle not found in Geant4 particle list!");
-        ParticleCollection.push_back(pParticleDefinition);
+        DefinedParticles.push_back(name);
     }
 }
 
@@ -238,4 +241,6 @@ void SessionManager::executeAdditionalCommands()
     G4UImanager* UImanager = G4UImanager::GetUIpointer();
     for (auto & cmd : OnStartCommands)
         UImanager->ApplyCommand(cmd);
+
+    UImanager->ApplyCommand("/run/initialize");
 }

@@ -30,7 +30,9 @@ class SessionManager
         SessionManager(SessionManager const&) = delete;
         void operator=(SessionManager const&) = delete;
 
-        void startSession(const std::string & ConfigFileName);
+        void ReadConfig(const std::string & ConfigFileName);
+
+        void startSession();
         void terminateSession(const std::string & ReturnMessage); //calls exit()!
 
         void runSimulation();
@@ -43,8 +45,7 @@ class SessionManager
         void sendLineToOutput(const std::string & text);
         void sendLineToOutput(const std::stringstream & text);
 
-    private:
-        void readConfig(const std::string & ConfigFileName);
+    private:        
         void prepareInputStream();
         void prepareOutputStream();
         void executeAdditionalCommands();
@@ -58,6 +59,7 @@ class SessionManager
         std::string NextEventId;
         std::vector<G4ParticleDefinition*> ParticleCollection; // does not own
         std::vector<std::string> SensitiveVolumes;
+        std::vector<std::string> DefinedParticles;
         std::vector<std::string> OnStartCommands;
         std::ifstream * inStreamPrimaries = 0;
         std::ofstream * outStreamDeposition = 0;
