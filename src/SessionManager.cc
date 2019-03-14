@@ -217,6 +217,8 @@ void SessionManager::ReadConfig(const std::string &ConfigFileName)
         std::cout << name << std::endl;
         DefinedParticles.push_back(name);
     }
+
+    bGuiMode = jo["GuiMode"].bool_value();
 }
 
 void SessionManager::prepareInputStream()

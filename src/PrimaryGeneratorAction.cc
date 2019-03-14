@@ -23,8 +23,6 @@ void PrimaryGeneratorAction::GeneratePrimaries(G4Event* anEvent)
     SessionManager & SM = SessionManager::getInstance();
     const std::vector<ParticleRecord> & GeneratedPrimaries = SM.getNextEventPrimaries();
 
-    //*** check for empty ?
-
     for (const ParticleRecord & r : GeneratedPrimaries)
     {
         std::cout << r.Particle->GetParticleName() <<" Pos:"<<r.Position[0]<<" "<<r.Position[1]<<" "<<r.Position[2] <<" Dir:"<<

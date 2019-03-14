@@ -37,6 +37,7 @@ class SessionManager
 
         void runSimulation();
 
+        bool isGuiMode() const {return bGuiMode;}
         const std::string & getGDML() const {return GDML;}
         const std::string & getEventId() const {return EventId;}
         void updateEventId();
@@ -66,6 +67,7 @@ class SessionManager
         std::ifstream * inStreamPrimaries = 0;
         std::ofstream * outStreamDeposition = 0;
         std::vector<ParticleRecord> GeneratedPrimaries;
+        bool bGuiMode = false;
 
 };
 

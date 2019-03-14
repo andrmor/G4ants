@@ -50,7 +50,8 @@ int main(int argc,char** argv)
     UImanager->ApplyCommand("/control/execute vis.mac"); //---------
 
     SM.startSession();
-    SM.runSimulation();
+    if (!SM.isGuiMode())
+        SM.runSimulation();
 
     ui->SessionStart();   //------------
 
