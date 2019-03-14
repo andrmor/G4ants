@@ -13,17 +13,18 @@
 #include "G4UIExecutive.hh"
 #include "G4GDMLParser.hh"
 
-int main(int argc,char** argv)
+int main(int argc, char** argv)
 {
-    G4UIExecutive* ui = new G4UIExecutive(argc, argv);   //---------
-
-    G4RunManager* runManager = new G4RunManager;
-
     SessionManager& SM = SessionManager::getInstance();
     if (argc < 2)
         SM.terminateSession("Config file not provided as the first argument");
     SM.ReadConfig(argv[1]);
+    bool bGui = SM.isGuiMode();
 
+    G4UIExecutive* ui =  0;
+    if (bGui) ui = new G4UIExecutive(argc, argv);
+
+    G4RunManager* runManager = new G4RunManager;
     G4GDMLParser parser;
     parser.Read(SM.getGDML(), false); //false - no validation
     // need to implement own G4excpetion-based handler class  ->  SM.terminateSession("Error parsing GDML file");
@@ -39,23 +40,26 @@ int main(int argc,char** argv)
     UImanager->ApplyCommand("/run/initialize");
     UImanager->ApplyCommand("/control/verbose 0");
     UImanager->ApplyCommand("/run/verbose 0");
-    UImanager->ApplyCommand("/hits/verbose 2");
-    UImanager->ApplyCommand("/tracking/verbose 2"); //all details of the tracking
-    UImanager->ApplyCommand("/control/saveHistory");
+    if (bGui) UImanager->ApplyCommand("/hits/verbose 2");
+    if (bGui) UImanager->ApplyCommand("/tracking/verbose 2");
+    if (bGui) UImanager->ApplyCommand("/control/saveHistory");
 
-    // Initialize visualization
-    G4VisManager* visManager = new G4VisExecutive("Quiet"); //G4VisExecutive can take a verbosity argument - see /vis/verbose guidance.
-    visManager->Initialize();
-
-    UImanager->ApplyCommand("/control/execute vis.mac"); //---------
+    G4VisManager* visManager = 0;
+    if (bGui)
+    {
+        visManager = new G4VisExecutive("Quiet");
+        visManager->Initialize();
+        UImanager->ApplyCommand("/control/execute vis.mac");
+    }
 
     SM.startSession();
     if (!SM.isGuiMode())
         SM.runSimulation();
 
-    ui->SessionStart();   //------------
+    if (bGui)
+        ui->SessionStart();
 
-    delete ui;  //-----------
+    delete ui;
     delete visManager;
     delete runManager;
 
