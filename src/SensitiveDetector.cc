@@ -17,15 +17,20 @@ G4bool SensitiveDetector::ProcessHits(G4Step* aStep, G4TouchableHistory*)
     G4double edep = aStep->GetTotalEnergyDeposit();
     if (edep == 0.0) return false;
 
+    SessionManager & SM = SessionManager::getInstance();
+
+    const int iPart = SM.findParticle( aStep->GetTrack()->GetParticleDefinition()->GetParticleName() ); //will terminate session if not found!
+    const int iMat = SM.findMaterial( aStep->GetPreStepPoint()->GetMaterial()->GetName() ); //will terminate session if not found!
     const G4ThreeVector& pos = aStep->GetPostStepPoint()->GetPosition();
 
     std::stringstream ss;
-    ss << aStep->GetTrack()->GetParticleDefinition()->GetParticleName() << ' ';
+    ss << iPart << ' ';
+    ss << iMat << ' ';
     ss << edep/keV << ' ';
     ss << pos[0] << ' ' << pos[1] << ' ' << pos[2] << ' ';
     ss << aStep->GetPostStepPoint()->GetGlobalTime()/ns;
 
-    SessionManager::getInstance().sendLineToOutput(ss);
+    SM.sendLineToOutput(ss);
 
     return true;
 }

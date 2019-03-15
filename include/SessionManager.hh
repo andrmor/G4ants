@@ -3,6 +3,7 @@
 
 #include <string>
 #include <vector>
+#include <map>
 
 #include "G4ThreeVector.hh"
 
@@ -44,6 +45,8 @@ class SessionManager
         std::vector<ParticleRecord> & getNextEventPrimaries();
         bool isEndOfInputFileReached() const;
         const std::vector<std::string> & getListOfSensitiveVolumes() const {return SensitiveVolumes;}
+        int findParticle(const std::string & particleName);
+        int findMaterial(const std::string & materialName);
         void sendLineToOutput(const std::string & text);
         void sendLineToOutput(const std::stringstream & text);
 
@@ -61,6 +64,8 @@ class SessionManager
         std::string NextEventId;
         std::string GDML;
         std::vector<G4ParticleDefinition*> ParticleCollection; // does not own
+        std::map<std::string, int> ParticleMap;
+        std::map<std::string, int> MaterialMap;
         std::vector<std::string> SensitiveVolumes;
         std::vector<std::string> DefinedParticles;
         std::vector<std::string> OnStartCommands;

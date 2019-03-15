@@ -4,6 +4,7 @@
 #include <iostream>
 #include <sstream>
 #include <fstream>
+#include <map>
 
 #include "G4ParticleDefinition.hh"
 #include "G4ParticleTable.hh"
@@ -119,6 +120,24 @@ bool SessionManager::isEndOfInputFileReached() const
     return inStreamPrimaries->eof();
 }
 
+int SessionManager::findParticle(const std::string & particleName)
+{
+    auto it = ParticleMap.find(particleName);
+    if (it == ParticleMap.end())
+        terminateSession("Found deposition by particle not listed in the config json: " + particleName);
+
+    return it->second;
+}
+
+int SessionManager::findMaterial(const std::string &materialName)
+{
+    auto it = MaterialMap.find(materialName);
+    if (it == MaterialMap.end())
+        terminateSession("Found deposition in materials not listed in the config json: " + materialName);
+
+    return it->second;
+}
+
 void SessionManager::sendLineToOutput(const std::string & text)
 {
     if (!outStreamDeposition) return;
@@ -206,16 +225,33 @@ void SessionManager::ReadConfig(const std::string &ConfigFileName)
 
     //extracting defined particles
     DefinedParticles.clear();
+    ParticleMap.clear();
     std::vector<json11::Json> arr = jo["Particles"].array_items();    
     if (arr.empty())
-        terminateSession("No particles defined in the configuration file!");
+        terminateSession("Particles are not defined in the configuration file!");
     //populating particle collection
     std::cout << "Config lists the following particles:" << std::endl;
-    for (auto & j : arr)
+    for (size_t i=0; i<arr.size(); i++)
     {
+        const json11::Json & j = arr[i];
         std::string name = j.string_value();
         std::cout << name << std::endl;
         DefinedParticles.push_back(name);
+        ParticleMap[name] = (int)i;
+    }
+
+    //extracting defined materials
+    MaterialMap.clear();
+    std::vector<json11::Json> Marr = jo["Materials"].array_items();
+    if (Marr.empty())
+        terminateSession("Materials are not defined in the configuration file!");
+    std::cout << "Config lists the following materials:" << std::endl;
+    for (size_t i=0; i<Marr.size(); i++)
+    {
+        const json11::Json & j = Marr[i];
+        std::string name = j.string_value();
+        std::cout << name << std::endl;
+        MaterialMap[name] = (int)i;
     }
 
     bGuiMode = jo["GuiMode"].bool_value();
