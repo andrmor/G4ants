@@ -64,6 +64,14 @@ void SessionManager::terminateSession(const std::string & ReturnMessage)
     exit(0);
 }
 
+void SessionManager::endSession()
+{
+    std::ofstream outStream;
+    outStream.open(FileName_Receipt);
+    if (outStream.is_open())
+        outStream << "OK" << std::endl;
+}
+
 void SessionManager::runSimulation()
 {
     G4UImanager* UImanager = G4UImanager::GetUIpointer();

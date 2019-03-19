@@ -35,6 +35,7 @@ class SessionManager
 
         void startSession();
         void terminateSession(const std::string & ReturnMessage); //calls exit()!
+        void endSession();
 
         void runSimulation();
 

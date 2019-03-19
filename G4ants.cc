@@ -63,5 +63,5 @@ int main(int argc, char** argv)
     delete visManager;
     delete runManager;
 
-    SM.terminateSession("OK");
+    SM.endSession();
 }
