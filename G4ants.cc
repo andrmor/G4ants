@@ -37,31 +37,34 @@ int main(int argc, char** argv)
     runManager->SetUserInitialization(new ActionInitialization());
 
     G4UImanager* UImanager = G4UImanager::GetUIpointer();
-    UImanager->ApplyCommand("/run/initialize");
+    //UImanager->ApplyCommand("/run/initialize");
     UImanager->ApplyCommand("/control/verbose 0");
     UImanager->ApplyCommand("/run/verbose 0");
-    if (bGui) UImanager->ApplyCommand("/hits/verbose 2");
-    if (bGui) UImanager->ApplyCommand("/tracking/verbose 2");
-    if (bGui) UImanager->ApplyCommand("/control/saveHistory");
-
-    G4VisManager* visManager = 0;
     if (bGui)
     {
-        visManager = new G4VisExecutive("Quiet");
-        visManager->Initialize();
-        UImanager->ApplyCommand("/control/execute vis.mac");
+        UImanager->ApplyCommand("/hits/verbose 2");
+        UImanager->ApplyCommand("/tracking/verbose 2");
+        UImanager->ApplyCommand("/control/saveHistory");
     }
 
     SM.startSession();
+
+    G4VisManager* visManager = 0;
+
     if (!SM.isGuiMode())
         SM.runSimulation();
+    else
+    {
 
-    if (bGui)
+        visManager = new G4VisExecutive("Quiet");
+        visManager->Initialize();
+        UImanager->ApplyCommand("/control/execute vis.mac");
         ui->SessionStart();
+    }
 
-    delete ui;
     delete visManager;
     delete runManager;
+    delete ui;
 
     SM.endSession();
 }

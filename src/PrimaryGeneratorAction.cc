@@ -25,8 +25,8 @@ void PrimaryGeneratorAction::GeneratePrimaries(G4Event* anEvent)
 
     for (const ParticleRecord & r : GeneratedPrimaries)
     {
-        std::cout << r.Particle->GetParticleName() <<" Pos:"<<r.Position[0]<<" "<<r.Position[1]<<" "<<r.Position[2] <<" Dir:"<<
-                     r.Direction[0]<<" "<<r.Direction[1]<<" "<<r.Direction[2]<<" E:"<< r.Energy <<" T:"<< r.Time << std::endl;
+        //std::cout << r.Particle->GetParticleName() <<" Pos:"<<r.Position[0]<<" "<<r.Position[1]<<" "<<r.Position[2] <<" Dir:"<<
+        //             r.Direction[0]<<" "<<r.Direction[1]<<" "<<r.Direction[2]<<" E:"<< r.Energy <<" T:"<< r.Time << std::endl;
 
         fParticleGun->SetParticleDefinition(r.Particle);
         fParticleGun->SetParticlePosition(r.Position); //position in millimeters - no need units

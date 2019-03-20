@@ -91,7 +91,7 @@ std::vector<ParticleRecord> &SessionManager::getNextEventPrimaries()
 
     for( std::string line; getline( *inStreamPrimaries, line ); )
     {
-        std::cout << line << std::endl;
+        //std::cout << line << std::endl;
         if (line.size() < 1) continue; //allow empty lines
 
         if (line[0] == '#')
