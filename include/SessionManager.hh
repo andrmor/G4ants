@@ -48,18 +48,26 @@ class SessionManager
         const std::vector<std::string> & getListOfSensitiveVolumes() const {return SensitiveVolumes;}
         int findParticle(const std::string & particleName);
         int findMaterial(const std::string & materialName);
-        void sendLineToOutput(const std::string & text);
-        void sendLineToOutput(const std::stringstream & text);
+
+        int getNumEventsForTrackExport() const {return NumberEventsForTrackExport;}
+
+        void sendLineToDepoOutput(const std::string & text);
+        void sendLineToDepoOutput(const std::stringstream & text);
+
+        void sendLineToTracksOutput(const std::string & text);
+        void sendLineToTracksOutput(const std::stringstream & text);
 
     private:        
         void prepareInputStream();
-        void prepareOutputStream();
+        void prepareOutputDepoStream();
+        void prepareOutputTracks();
         void executeAdditionalCommands();
 
     private:
         std::string FileName_Input;
         std::string FileName_Output;
         std::string FileName_Receipt;
+        std::string FileName_Tracks;
         long Seed = 0;
         std::string EventId;
         std::string NextEventId;
@@ -72,8 +80,10 @@ class SessionManager
         std::vector<std::string> OnStartCommands;
         std::ifstream * inStreamPrimaries = 0;
         std::ofstream * outStreamDeposition = 0;
+        std::ofstream * outStreamTracks = 0;
         std::vector<ParticleRecord> GeneratedPrimaries;
         bool bGuiMode = false;
+        int NumberEventsForTrackExport = 0;
 
 };
 

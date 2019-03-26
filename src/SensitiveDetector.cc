@@ -30,7 +30,7 @@ G4bool SensitiveDetector::ProcessHits(G4Step* aStep, G4TouchableHistory*)
     ss << pos[0] << ' ' << pos[1] << ' ' << pos[2] << ' ';
     ss << aStep->GetPostStepPoint()->GetGlobalTime()/ns;
 
-    SM.sendLineToOutput(ss);
+    SM.sendLineToDepoOutput(ss);
 
     return true;
 }

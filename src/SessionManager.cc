@@ -22,6 +22,7 @@ SessionManager::SessionManager() {}
 SessionManager::~SessionManager()
 {
     delete outStreamDeposition;
+    delete outStreamTracks;
     delete inStreamPrimaries;
 }
 
@@ -42,7 +43,10 @@ void SessionManager::startSession()
     prepareInputStream();
 
     // preparing ouptut for deposition data
-    prepareOutputStream();
+    prepareOutputDepoStream();
+
+    // preparing ouptut for track export
+    if (NumberEventsForTrackExport > 0) prepareOutputTracks();
 
     //set random generator. The seed was provided in the config file
     CLHEP::RanecuEngine* randGen = new CLHEP::RanecuEngine();
@@ -146,18 +150,32 @@ int SessionManager::findMaterial(const std::string &materialName)
     return it->second;
 }
 
-void SessionManager::sendLineToOutput(const std::string & text)
+void SessionManager::sendLineToDepoOutput(const std::string & text)
 {
     if (!outStreamDeposition) return;
 
     *outStreamDeposition << text.data() << std::endl;
 }
 
-void SessionManager::sendLineToOutput(const std::stringstream & text)
+void SessionManager::sendLineToDepoOutput(const std::stringstream & text)
 {
     if (!outStreamDeposition) return;
 
     *outStreamDeposition << text.rdbuf() << std::endl;
+}
+
+void SessionManager::sendLineToTracksOutput(const std::string &text)
+{
+    if (!outStreamTracks) return;
+
+    *outStreamTracks << text.data() << std::endl;
+}
+
+void SessionManager::sendLineToTracksOutput(const std::stringstream &text)
+{
+    if (!outStreamTracks) return;
+
+    *outStreamTracks << text.rdbuf() << std::endl;
 }
 
 void SessionManager::ReadConfig(const std::string &ConfigFileName)
@@ -263,6 +281,13 @@ void SessionManager::ReadConfig(const std::string &ConfigFileName)
     }
 
     bGuiMode = jo["GuiMode"].bool_value();
+
+    //Tracks export
+    NumberEventsForTrackExport = jo["MaxEventsForTrackExport"].int_value();
+    FileName_Tracks = jo["File_Tracks"].string_value();
+    if (NumberEventsForTrackExport > 0 && FileName_Tracks.empty())
+        terminateSession("File name with tracks to export was not provided");
+
 }
 
 void SessionManager::prepareInputStream()
@@ -278,12 +303,20 @@ void SessionManager::prepareInputStream()
     std::cout << EventId << std::endl;
 }
 
-void SessionManager::prepareOutputStream()
+void SessionManager::prepareOutputDepoStream()
 {
     outStreamDeposition = new std::ofstream();
     outStreamDeposition->open(FileName_Output);
     if (!outStreamDeposition->is_open())
         terminateSession("Cannot open file to store deposition data");
+}
+
+void SessionManager::prepareOutputTracks()
+{
+    outStreamTracks = new std::ofstream();
+    outStreamTracks->open(FileName_Tracks);
+    if (!outStreamTracks->is_open())
+        terminateSession("Cannot open file to export tracks data");
 }
 
 void SessionManager::executeAdditionalCommands()
