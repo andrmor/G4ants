@@ -22,7 +22,17 @@ void SteppingAction::UserSteppingAction(const G4Step *step)
     if (proc && proc->GetProcessType() == fTransportation)
         return; // skip transportation
 
-    SM.sendLineToTracksOutput(step->GetPostStepPoint()->GetPosition(),
-                              step->GetTotalEnergyDeposit()/keV,
-                              (proc ? proc->GetProcessName() : '?')  );
+    const G4StepPoint * pp = step->GetPostStepPoint();
+    SM.sendLineToTracksOutput(pp->GetPosition(),
+                              pp->GetTotalEnergy()/keV,
+                              //step->GetTotalEnergyDeposit()/keV,
+                              (proc ? proc->GetProcessName() : '?') );
+
+    if (step->GetNumberOfSecondariesInCurrentStep() > 0)
+    {
+        //std::stringstream ss;
+        //const std::vector<const G4Track*>* sec = step->GetSecondaryInCurrentStep();
+        //for (const G4Track * t : *sec) ss << ' ' << t->GetTrackID();
+        //SM.sendLineToTracksOutput(ss);
+    }
 }
