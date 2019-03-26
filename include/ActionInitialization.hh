@@ -9,7 +9,6 @@ public:
     ActionInitialization();
     virtual ~ActionInitialization();
 
-    virtual void BuildForMaster() const;
     virtual void Build() const;
 };
 
