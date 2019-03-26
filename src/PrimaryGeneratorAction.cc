@@ -35,5 +35,7 @@ void PrimaryGeneratorAction::GeneratePrimaries(G4Event* anEvent)
         fParticleGun->SetParticleTime(r.Time); //in ns - no need units
 
         fParticleGun->GeneratePrimaryVertex(anEvent);
+
+        SM.NextTrackID++;
     }
 }

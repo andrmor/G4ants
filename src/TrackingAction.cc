@@ -17,10 +17,6 @@ TrackingAction::~TrackingAction(){}
 void TrackingAction::PreUserTrackingAction(const G4Track *track)
 {
     SessionManager & SM = SessionManager::getInstance();
-    if (SM.getNumEventsForTrackExport() == 0) return;
-
-    //SM.sendLineToTracksOutput("Started");
-    //std::cout << "Track started with ID: "<< track->GetTrackID() << "  Parent ID:"<<track->GetParentID() << "   part: "<<track->GetParticleDefinition()->GetParticleName() <<std::endl;
 
     std::stringstream ss;
     ss << '>';
@@ -33,16 +29,10 @@ void TrackingAction::PreUserTrackingAction(const G4Track *track)
 }
 
 /*
-void TrackingAction::PostUserTrackingAction(const G4Track *track)
+void TrackingAction::PostUserTrackingAction(const G4Track *)
 {
     SessionManager & SM = SessionManager::getInstance();
-    if (SM.getNumEventsForTrackExport() == 0) return;
 
-    //std::cout << "Track finished"<< std::endl;
-
-    std::stringstream ss;
-    ss << '<';
-    ss << track->GetStep()->GetPostStepPoint()->GetProcessDefinedStep()->GetProcessName();
-    SM.sendLineToTracksOutput(ss);
+    SM.sendLineToTracksOutput(" track removed");
 }
 */

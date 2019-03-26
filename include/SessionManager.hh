@@ -59,6 +59,8 @@ class SessionManager
         void sendLineToTracksOutput(const std::stringstream & text);
         void sendLineToTracksOutput(const G4ThreeVector & positionVector, double dE, const std::string & processName);
 
+        int NextTrackID = 1;
+
     private:        
         void prepareInputStream();
         void prepareOutputDepoStream();
@@ -86,7 +88,6 @@ class SessionManager
         std::vector<ParticleRecord> GeneratedPrimaries;
         bool bGuiMode = false;
         int NumberEventsForTrackExport = 0;
-
 };
 
 #endif // SESSIONMANAGER_H

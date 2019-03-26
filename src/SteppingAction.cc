@@ -7,6 +7,8 @@
 #include "G4VProcess.hh"
 #include "G4ProcessType.hh"
 #include "G4SystemOfUnits.hh"
+//#include "G4EventManager.hh"
+//#include "G4StackManager.hh"
 
 #include <iostream>
 
@@ -28,11 +30,23 @@ void SteppingAction::UserSteppingAction(const G4Step *step)
                               //step->GetTotalEnergyDeposit()/keV,
                               (proc ? proc->GetProcessName() : '?') );
 
-    if (step->GetNumberOfSecondariesInCurrentStep() > 0)
+    const int numSec = step->GetNumberOfSecondariesInCurrentStep();
+    if (numSec > 0)
     {
-        //std::stringstream ss;
+        //G4StackManager * StM = G4EventManager::GetEventManager()->GetStackManager();
+        //const int curStack = StM->GetNTotalTrack();
+        //const int totalSec = step->GetSecondary()->size();
+        //int predictedID = 2 + curStack + totalSec - numSec;
+
+        std::stringstream ss;
+        ss << " #secs: ";
+        ss << step->GetNumberOfSecondariesInCurrentStep();
+        ss << " predicted indeces: ";
         //const std::vector<const G4Track*>* sec = step->GetSecondaryInCurrentStep();
         //for (const G4Track * t : *sec) ss << ' ' << t->GetTrackID();
-        //SM.sendLineToTracksOutput(ss);
+
+        for (int i=0; i<numSec; i++)
+            ss << ' ' << SM.NextTrackID++;
+        SM.sendLineToTracksOutput(ss);
     }
 }
