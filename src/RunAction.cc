@@ -17,7 +17,7 @@ void RunAction::BeginOfRunAction(const G4Run*)
 {
     SessionManager & SM = SessionManager::getInstance();
 
-    SM.NextTrackID = 1;
+    SM.resetPredictedTrackID();
 
     SM.sendLineToDepoOutput(SM.getEventId());
 

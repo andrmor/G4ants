@@ -9,6 +9,7 @@
 #include "G4SystemOfUnits.hh"
 
 #include <iostream>
+#include <sstream>
 
 TrackingAction::TrackingAction(){}
 
@@ -25,7 +26,9 @@ void TrackingAction::PreUserTrackingAction(const G4Track *track)
     ss << SM.findParticle( track->GetParticleDefinition()->GetParticleName() );
     SM.sendLineToTracksOutput(ss);
 
-    SM.sendLineToTracksOutput(track->GetPosition(), track->GetTotalEnergy()/keV, "+");
+    std::stringstream st;
+    st << '+';
+    SM.sendLineToTracksOutput(track->GetPosition(), track->GetKineticEnergy()/keV, st);
 }
 
 /*

@@ -36,6 +36,6 @@ void PrimaryGeneratorAction::GeneratePrimaries(G4Event* anEvent)
 
         fParticleGun->GeneratePrimaryVertex(anEvent);
 
-        SM.NextTrackID++;
+        SM.incrementPredictedTrackID();
     }
 }

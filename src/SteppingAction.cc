@@ -19,34 +19,25 @@ SteppingAction::~SteppingAction(){}
 void SteppingAction::UserSteppingAction(const G4Step *step)
 {
     SessionManager & SM = SessionManager::getInstance();
+    if (SM.getNumEventsForTrackExport() == 0) return; // use stepping action only for recording of telemetry
 
     const G4VProcess * proc = step->GetPostStepPoint()->GetProcessDefinedStep();
-    if (proc && proc->GetProcessType() == fTransportation)
-        return; // skip transportation
+    if (proc && proc->GetProcessType() == fTransportation) return; // skip transportation
 
-    const G4StepPoint * pp = step->GetPostStepPoint();
-    SM.sendLineToTracksOutput(pp->GetPosition(),
-                              pp->GetTotalEnergy()/keV,
-                              //step->GetTotalEnergyDeposit()/keV,
-                              (proc ? proc->GetProcessName() : '?') );
-
+    std::stringstream ss;
+    ss << (proc ? proc->GetProcessName() : '?');
     const int numSec = step->GetNumberOfSecondariesInCurrentStep();
     if (numSec > 0)
     {
-        //G4StackManager * StM = G4EventManager::GetEventManager()->GetStackManager();
-        //const int curStack = StM->GetNTotalTrack();
-        //const int totalSec = step->GetSecondary()->size();
-        //int predictedID = 2 + curStack + totalSec - numSec;
-
-        std::stringstream ss;
-        ss << " #secs: ";
-        ss << step->GetNumberOfSecondariesInCurrentStep();
-        ss << " predicted indeces: ";
-        //const std::vector<const G4Track*>* sec = step->GetSecondaryInCurrentStep();
-        //for (const G4Track * t : *sec) ss << ' ' << t->GetTrackID();
-
         for (int i=0; i<numSec; i++)
-            ss << ' ' << SM.NextTrackID++;
-        SM.sendLineToTracksOutput(ss);
+        {
+            ss << ' ' << SM.getPredictedTrackID();
+            SM.incrementPredictedTrackID();
+        }
     }
+
+    const G4StepPoint * pp = step->GetPostStepPoint();
+    SM.sendLineToTracksOutput(pp->GetPosition(),
+                              pp->GetKineticEnergy()/keV,
+                              ss);
 }
