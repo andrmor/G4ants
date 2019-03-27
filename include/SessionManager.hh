@@ -40,6 +40,7 @@ class SessionManager
 
         void runSimulation();
 
+        void onRunFinished();
         bool isGuiMode() const {return bGuiMode;}
         const std::string & getGDML() const {return GDML;}
         const std::string & getEventId() const {return EventId;}

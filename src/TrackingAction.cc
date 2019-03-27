@@ -18,6 +18,7 @@ TrackingAction::~TrackingAction(){}
 void TrackingAction::PreUserTrackingAction(const G4Track *track)
 {
     SessionManager & SM = SessionManager::getInstance();
+    if (SM.getNumEventsForTrackExport() == 0) return;
 
     std::stringstream ss;
     ss << '>';

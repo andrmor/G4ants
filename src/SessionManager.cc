@@ -84,6 +84,14 @@ void SessionManager::runSimulation()
         UImanager->ApplyCommand("/run/beamOn");
 }
 
+void SessionManager::onRunFinished()
+{
+    updateEventId();
+
+    if (NumberEventsForTrackExport > 0)
+        NumberEventsForTrackExport--;
+}
+
 void SessionManager::updateEventId()
 {
     EventId = NextEventId;
