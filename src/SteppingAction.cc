@@ -22,7 +22,9 @@ void SteppingAction::UserSteppingAction(const G4Step *step)
     if (SM.getNumEventsForTrackExport() == 0) return; // use stepping action only for recording of telemetry
 
     const G4VProcess * proc = step->GetPostStepPoint()->GetProcessDefinedStep();
-    if (proc && proc->GetProcessType() == fTransportation) return; // skip transportation
+    if (proc && proc->GetProcessType() == fTransportation)
+        if (step->GetPostStepPoint()->GetStepStatus() != fWorldBoundary)
+            return; // skip transportation
 
     std::stringstream ss;
     ss << (proc ? proc->GetProcessName() : '?');
@@ -38,6 +40,7 @@ void SteppingAction::UserSteppingAction(const G4Step *step)
 
     const G4StepPoint * pp = step->GetPostStepPoint();
     SM.sendLineToTracksOutput(pp->GetPosition(),
-                              pp->GetKineticEnergy()/keV,
+                              //pp->GetKineticEnergy()/keV,
+                              step->GetTotalEnergyDeposit()/keV,
                               ss);
 }

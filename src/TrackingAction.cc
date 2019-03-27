@@ -24,12 +24,15 @@ void TrackingAction::PreUserTrackingAction(const G4Track *track)
     ss << '>';
     ss << track->GetTrackID() << ' ';
     ss << track->GetParentID() << ' ';
-    ss << SM.findParticle( track->GetParticleDefinition()->GetParticleName() );
+    ss << SM.findParticle( track->GetParticleDefinition()->GetParticleName() ) << ' ';
+    const G4ThreeVector & pos = track->GetPosition();
+    ss << pos[0] << ' ' << pos[1] << ' ' << pos[2] << ' ';
+    ss << track->GetKineticEnergy()/keV;
     SM.sendLineToTracksOutput(ss);
 
-    std::stringstream st;
-    st << '+';
-    SM.sendLineToTracksOutput(track->GetPosition(), track->GetKineticEnergy()/keV, st);
+    //std::stringstream st;
+    //st << '+';
+    //SM.sendLineToTracksOutput(track->GetPosition(), track->GetKineticEnergy()/keV, st);
 }
 
 /*
