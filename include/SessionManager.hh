@@ -48,8 +48,8 @@ class SessionManager
         std::vector<ParticleRecord> & getNextEventPrimaries();
         bool isEndOfInputFileReached() const;
         const std::vector<std::string> & getListOfSensitiveVolumes() const {return SensitiveVolumes;}
-        int findParticle(const std::string & particleName);  // ***!!! change to pointer search
-        int findMaterial(const std::string & materialName);  // ***!!! change to pointer search
+        int findParticle(const std::string & particleName);  // change to pointer search?
+        int findMaterial(const std::string & materialName);  // change to pointer search?
 
         int getNumEventsForTrackExport() const {return NumberEventsForTrackExport;}
 
@@ -58,7 +58,6 @@ class SessionManager
 
         void sendLineToTracksOutput(const std::string & text);
         void sendLineToTracksOutput(const std::stringstream & text);
-        void sendLineToTracksOutput(const G4ThreeVector & positionVector, double dE, const std::stringstream & sstr);
 
         void resetPredictedTrackID() {NextTrackID = 1;}
         void incrementPredictedTrackID() {NextTrackID++;}

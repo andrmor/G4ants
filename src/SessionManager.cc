@@ -186,18 +186,6 @@ void SessionManager::sendLineToTracksOutput(const std::stringstream &text)
     *outStreamTracks << text.rdbuf() << std::endl;
 }
 
-#include "G4ThreeVector.hh"
-void SessionManager::sendLineToTracksOutput(const G4ThreeVector & positionVector, double dE, const std::stringstream & sstr)
-{
-    if (!outStreamTracks) return;
-
-    std::stringstream ss;
-    ss << positionVector[0] << ' ' << positionVector[1] << ' ' << positionVector[2] << ' ';
-    ss << dE << ' ';
-    ss << sstr.str();
-    *outStreamTracks << ss.rdbuf() << std::endl;
-}
-
 void SessionManager::ReadConfig(const std::string &ConfigFileName)
 {
     //opening config file

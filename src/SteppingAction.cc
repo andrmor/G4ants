@@ -26,8 +26,16 @@ void SteppingAction::UserSteppingAction(const G4Step *step)
         if (step->GetPostStepPoint()->GetStepStatus() != fWorldBoundary)
             return; // skip transportation
 
+    // format:
+    // X Y Z Time DirectDepoE ProcName [secondaries]
+
     std::stringstream ss;
+    const G4ThreeVector & pos = step->GetPostStepPoint()->GetPosition();
+    ss << pos[0] << ' ' << pos[1] << ' ' << pos[2] << ' ';
+    ss << step->GetPostStepPoint()->GetGlobalTime()/ns << ' ';
+    ss << step->GetTotalEnergyDeposit()/keV << ' ';
     ss << (proc ? proc->GetProcessName() : '?');
+
     const int numSec = step->GetNumberOfSecondariesInCurrentStep();
     if (numSec > 0)
     {
@@ -38,9 +46,5 @@ void SteppingAction::UserSteppingAction(const G4Step *step)
         }
     }
 
-    const G4StepPoint * pp = step->GetPostStepPoint();
-    SM.sendLineToTracksOutput(pp->GetPosition(),
-                              //pp->GetKineticEnergy()/keV,
-                              step->GetTotalEnergyDeposit()/keV,
-                              ss);
+    SM.sendLineToTracksOutput(ss);
 }

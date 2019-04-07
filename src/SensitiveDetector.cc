@@ -23,6 +23,9 @@ G4bool SensitiveDetector::ProcessHits(G4Step* aStep, G4TouchableHistory*)
     const int iMat = SM.findMaterial( aStep->GetPreStepPoint()->GetMaterial()->GetName() ); //will terminate session if not found!
     const G4ThreeVector& pos = aStep->GetPostStepPoint()->GetPosition();
 
+    // format:
+    // partId matId DepoE X Y Z Time
+
     std::stringstream ss;
     ss << iPart << ' ';
     ss << iMat << ' ';

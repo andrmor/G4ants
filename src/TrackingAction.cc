@@ -20,19 +20,20 @@ void TrackingAction::PreUserTrackingAction(const G4Track *track)
     SessionManager & SM = SessionManager::getInstance();
     if (SM.getNumEventsForTrackExport() == 0) return;
 
+    // format:
+    // TrackID ParentTrackID ParticleId X Y Z Time E
+
     std::stringstream ss;
     ss << '>';
     ss << track->GetTrackID() << ' ';
     ss << track->GetParentID() << ' ';
     ss << SM.findParticle( track->GetParticleDefinition()->GetParticleName() ) << ' ';
+    //ss << SM.findMaterial( track->GetVolume()->GetLogicalVolume()->GetMaterial()->GetName() ) << ' ';
     const G4ThreeVector & pos = track->GetPosition();
     ss << pos[0] << ' ' << pos[1] << ' ' << pos[2] << ' ';
+    ss << track->GetGlobalTime()/ns << ' ';
     ss << track->GetKineticEnergy()/keV;
     SM.sendLineToTracksOutput(ss);
-
-    //std::stringstream st;
-    //st << '+';
-    //SM.sendLineToTracksOutput(track->GetPosition(), track->GetKineticEnergy()/keV, st);
 }
 
 /*

@@ -2,12 +2,13 @@
 #include "DetectorConstruction.hh"
 #include "ActionInitialization.hh"
 
-#include <chrono>
+//#include <chrono>
 
 #include "G4RunManager.hh"
 #include "G4UImanager.hh"
 //#include "FTFP_BERT.hh"
-#include "QGSP_BERT_HP.hh"
+//#include "QGSP_BERT_HP.hh"
+#include "QGSP_BIC_HP.hh"
 #include "G4StepLimiterPhysics.hh"
 #include "G4VisExecutive.hh"
 #include "G4UIExecutive.hh"
@@ -30,7 +31,8 @@ int main(int argc, char** argv)
     // need to implement own G4excpetion-based handler class  ->  SM.terminateSession("Error parsing GDML file");
     runManager->SetUserInitialization(new DetectorConstruction(parser.GetWorldVolume()));
 
-    G4VModularPhysicsList* physicsList = new QGSP_BERT_HP; //FTFP_BERT //GSP_BIC_HP;
+    //G4VModularPhysicsList* physicsList = new QGSP_BERT_HP; //FTFP_BERT
+    G4VModularPhysicsList* physicsList = new QGSP_BIC_HP;
     physicsList->RegisterPhysics(new G4StepLimiterPhysics());
     runManager->SetUserInitialization(physicsList);
 
