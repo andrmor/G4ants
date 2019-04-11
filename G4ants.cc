@@ -39,7 +39,7 @@ int main(int argc, char** argv)
     runManager->SetUserInitialization(new ActionInitialization());
 
     G4UImanager* UImanager = G4UImanager::GetUIpointer();
-    //UImanager->ApplyCommand("/run/initialize");
+    UImanager->ApplyCommand("/run/initialize");
     UImanager->ApplyCommand("/control/verbose 0");
     UImanager->ApplyCommand("/run/verbose 0");
     if (bGui)

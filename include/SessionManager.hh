@@ -1,6 +1,8 @@
 #ifndef SESSIONMANAGER_H
 #define SESSIONMANAGER_H
 
+#include "json11.hh" //https://github.com/dropbox/json11
+
 #include <string>
 #include <vector>
 #include <map>
@@ -63,7 +65,8 @@ class SessionManager
         void incrementPredictedTrackID() {NextTrackID++;}
         int getPredictedTrackID() {return NextTrackID;}
 
-    private:        
+    private:
+        void prepareParticleCollection();
         void prepareInputStream();
         void prepareOutputDepoStream();
         void prepareOutputTracks();
@@ -78,11 +81,11 @@ class SessionManager
         std::string EventId;
         std::string NextEventId;
         std::string GDML;
+        std::vector<json11::Json> ParticleJsonArray;
         std::vector<G4ParticleDefinition*> ParticleCollection; // does not own
         std::map<std::string, int> ParticleMap;
         std::map<std::string, int> MaterialMap;
         std::vector<std::string> SensitiveVolumes;
-        std::vector<std::string> DefinedParticles;
         std::vector<std::string> OnStartCommands;
         std::ifstream * inStreamPrimaries = 0;
         std::ofstream * outStreamDeposition = 0;

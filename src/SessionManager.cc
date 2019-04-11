@@ -1,5 +1,4 @@
 #include "SessionManager.hh"
-#include "json11.hh" //https://github.com/dropbox/json11
 
 #include <iostream>
 #include <sstream>
@@ -8,6 +7,7 @@
 
 #include "G4ParticleDefinition.hh"
 #include "G4ParticleTable.hh"
+#include "G4IonTable.hh"
 #include "G4UImanager.hh"
 #include "Randomize.hh"
 
@@ -28,16 +28,8 @@ SessionManager::~SessionManager()
 
 void SessionManager::startSession()
 {
-    //populating particle collection
-    for (auto & name : DefinedParticles)
-    {
-        G4ParticleDefinition * pParticleDefinition = G4ParticleTable::GetParticleTable()->FindParticle(name);
-        if (!pParticleDefinition)
-        {
-            terminateSession(name + " - particle not found in Geant4 particle table!");
-        }
-        ParticleCollection.push_back(pParticleDefinition);
-    }
+    //populate particle collection
+    prepareParticleCollection();
 
     // opening file with primaries
     prepareInputStream();
@@ -186,6 +178,47 @@ void SessionManager::sendLineToTracksOutput(const std::stringstream &text)
     *outStreamTracks << text.rdbuf() << std::endl;
 }
 
+void SessionManager::prepareParticleCollection()
+{
+    ParticleMap.clear();
+    ParticleCollection.clear();
+
+    std::cout << "Config lists the following particles:" << std::endl;
+    for (size_t i=0; i<ParticleJsonArray.size(); i++)
+    {
+        const json11::Json & j = ParticleJsonArray[i];
+        std::string name = "";
+        G4ParticleDefinition * pParticleDefinition = nullptr;
+        if (j.is_string())
+        {
+            name = j.string_value();
+            std::cout << name << std::endl;
+            pParticleDefinition = G4ParticleTable::GetParticleTable()->FindParticle(name);
+        }
+        else if (j.is_array())
+        {
+            //ion
+            std::vector<json11::Json> par = j.array_items();
+            if (par.size() == 3)
+            {
+                name = par[0].string_value();
+                int Z = par[1].int_value();
+                int A = par[2].int_value();
+
+                pParticleDefinition = G4ParticleTable::GetParticleTable()->GetIonTable()->GetIon(Z, A);
+                std::cout << name << " Z=" << Z << " A=" << A << std::endl;
+            }
+        }
+        if (name.empty())
+            terminateSession("Bad format of particle record in config");
+        if (!pParticleDefinition)
+            terminateSession(name + " - particle not found in Geant4 particle/ion table!");
+
+        ParticleMap[name] = (int)i;
+        ParticleCollection.push_back(pParticleDefinition);
+    }
+}
+
 void SessionManager::ReadConfig(const std::string &ConfigFileName)
 {
     //opening config file
@@ -257,22 +290,10 @@ void SessionManager::ReadConfig(const std::string &ConfigFileName)
         terminateSession("Seed: read from the config file failed");
     std::cout << "Random generator seed: " << Seed << std::endl;
 
-    //extracting defined particles
-    DefinedParticles.clear();
-    ParticleMap.clear();
-    std::vector<json11::Json> arr = jo["Particles"].array_items();    
-    if (arr.empty())
+    //extracting particle info
+    ParticleJsonArray = jo["Particles"].array_items();
+    if (ParticleJsonArray.empty())
         terminateSession("Particles are not defined in the configuration file!");
-    //populating particle collection
-    std::cout << "Config lists the following particles:" << std::endl;
-    for (size_t i=0; i<arr.size(); i++)
-    {
-        const json11::Json & j = arr[i];
-        std::string name = j.string_value();
-        std::cout << name << std::endl;
-        DefinedParticles.push_back(name);
-        ParticleMap[name] = (int)i;
-    }
 
     //extracting defined materials
     MaterialMap.clear();

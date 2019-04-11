@@ -18,6 +18,7 @@ PrimaryGeneratorAction::~PrimaryGeneratorAction()
     delete fParticleGun;
 }
 
+#include "G4IonTable.hh"
 void PrimaryGeneratorAction::GeneratePrimaries(G4Event* anEvent)
 {
     SessionManager & SM = SessionManager::getInstance();
