@@ -52,20 +52,19 @@ void SessionManager::terminateSession(const std::string & ReturnMessage)
 {
     std::cout << "Terminating session with the message:\n"<<ReturnMessage<<std::endl;
 
-    std::ofstream outStream;
-    outStream.open(FileName_Receipt);
-    if (outStream.is_open())
-        outStream << ReturnMessage << std::endl;
+    bError = true;
+    ErrorMessage = ReturnMessage;
+    generateReceipt();
 
     exit(0);
 }
 
 void SessionManager::endSession()
 {
-    std::ofstream outStream;
-    outStream.open(FileName_Receipt);
-    if (outStream.is_open())
-        outStream << "OK" << std::endl;
+    bError = false;
+    ErrorMessage.clear();
+
+    generateReceipt();
 }
 
 void SessionManager::runSimulation()
@@ -355,4 +354,19 @@ void SessionManager::executeAdditionalCommands()
         UImanager->ApplyCommand(cmd);
 
     UImanager->ApplyCommand("/run/initialize");
+}
+
+void SessionManager::generateReceipt()
+{
+    json11::Json::object receipt;
+
+    receipt["Success"] = !bError;
+    if (bError) receipt["Error"] = ErrorMessage;
+
+    std::string json_str = json11::Json(receipt).dump();
+
+    std::ofstream outStream;
+    outStream.open(FileName_Receipt);
+    if (outStream.is_open())
+        outStream << json_str << std::endl;
 }

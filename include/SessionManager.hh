@@ -63,7 +63,7 @@ class SessionManager
 
         void resetPredictedTrackID() {NextTrackID = 1;}
         void incrementPredictedTrackID() {NextTrackID++;}
-        int getPredictedTrackID() {return NextTrackID;}
+        int  getPredictedTrackID() {return NextTrackID;}
 
     private:
         void prepareParticleCollection();
@@ -71,6 +71,7 @@ class SessionManager
         void prepareOutputDepoStream();
         void prepareOutputTracks();
         void executeAdditionalCommands();
+        void generateReceipt();
 
     private:
         std::string FileName_Input;
@@ -94,6 +95,10 @@ class SessionManager
         bool bGuiMode = false;
         int NumberEventsForTrackExport = 0;
         int NextTrackID = 1;
+
+        //to report back to ants2
+        bool bError;
+        std::string ErrorMessage;
 };
 
 #endif // SESSIONMANAGER_H
