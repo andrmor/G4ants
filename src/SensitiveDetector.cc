@@ -14,12 +14,12 @@ SensitiveDetector::~SensitiveDetector() {}
 
 G4bool SensitiveDetector::ProcessHits(G4Step* aStep, G4TouchableHistory*)
 {  
-    G4double edep = aStep->GetTotalEnergyDeposit();
+    G4double edep = aStep->GetTotalEnergyDeposit()/keV;
     if (edep == 0.0) return false;
 
     SessionManager & SM = SessionManager::getInstance();
 
-    const int iPart = SM.findParticle( aStep->GetTrack()->GetParticleDefinition()->GetParticleName() ); //will terminate session if not found!
+    const int iPart = SM.findParticle( aStep->GetTrack()->GetParticleDefinition()->GetParticleName() );
     const int iMat = SM.findMaterial( aStep->GetPreStepPoint()->GetMaterial()->GetName() ); //will terminate session if not found!
     const G4ThreeVector& pos = aStep->GetPostStepPoint()->GetPosition();
 
@@ -29,11 +29,13 @@ G4bool SensitiveDetector::ProcessHits(G4Step* aStep, G4TouchableHistory*)
     std::stringstream ss;
     ss << iPart << ' ';
     ss << iMat << ' ';
-    ss << edep/keV << ' ';
+    ss << edep << ' ';
     ss << pos[0] << ' ' << pos[1] << ' ' << pos[2] << ' ';
     ss << aStep->GetPostStepPoint()->GetGlobalTime()/ns;
-
     SM.sendLineToDepoOutput(ss);
+
+    if (iPart < 0) SM.DepoByNotRegistered += edep;
+    else SM.DepoByRegistered += edep;
 
     return true;
 }

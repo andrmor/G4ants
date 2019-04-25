@@ -5,6 +5,7 @@
 
 #include <string>
 #include <vector>
+#include <unordered_set>
 #include <map>
 
 #include "G4ThreeVector.hh"
@@ -65,6 +66,11 @@ class SessionManager
         void incrementPredictedTrackID() {NextTrackID++;}
         int  getPredictedTrackID() {return NextTrackID;}
 
+public:
+        //runtime
+        double DepoByRegistered = 0;
+        double DepoByNotRegistered = 0;
+
     private:
         void prepareParticleCollection();
         void prepareInputStream();
@@ -95,6 +101,8 @@ class SessionManager
         bool bGuiMode = false;
         int NumberEventsForTrackExport = 0;
         int NextTrackID = 1;
+
+        std::unordered_set<std::string> SeenNotRegisteredParticles;
 
         //to report back to ants2
         bool bError;

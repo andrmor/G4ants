@@ -71,6 +71,9 @@ void SessionManager::runSimulation()
 {
     G4UImanager* UImanager = G4UImanager::GetUIpointer();
 
+    DepoByRegistered = 0;
+    DepoByNotRegistered = 0;
+
     while (!isEndOfInputFileReached())
         UImanager->ApplyCommand("/run/beamOn");
 }
@@ -135,7 +138,11 @@ int SessionManager::findParticle(const std::string & particleName)
 {
     auto it = ParticleMap.find(particleName);
     if (it == ParticleMap.end())
-        terminateSession("Found deposition by particle not listed in the config json: " + particleName);
+    {
+        //terminateSession("Found deposition by particle not listed in the config json: " + particleName);
+        SeenNotRegisteredParticles.insert(particleName);
+        return -1;
+    }
 
     return it->second;
 }
@@ -362,6 +369,14 @@ void SessionManager::generateReceipt()
 
     receipt["Success"] = !bError;
     if (bError) receipt["Error"] = ErrorMessage;
+
+    receipt["DepoByRegistered"] = DepoByRegistered;
+    receipt["DepoByNotRegistered"] = DepoByNotRegistered;
+
+    json11::Json::array NRP;
+    for (const std::string & s : SeenNotRegisteredParticles)
+        NRP.push_back(s);
+    if (!NRP.empty()) receipt["SeenNotRegisteredParticles"] = NRP;
 
     std::string json_str = json11::Json(receipt).dump();
 
