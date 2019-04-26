@@ -23,8 +23,8 @@ void SteppingAction::UserSteppingAction(const G4Step *step)
 
     const G4VProcess * proc = step->GetPostStepPoint()->GetProcessDefinedStep();
     if (proc && proc->GetProcessType() == fTransportation)
-        if (step->GetPostStepPoint()->GetStepStatus() != fWorldBoundary)
-            return; // skip transportation
+        if (step->GetPostStepPoint()->GetStepStatus() != fWorldBoundary && SM.CollectHistory == SessionManager::OnlyTracks)
+            return; // skip transportation if only collecting tracks
 
     // format:
     // X Y Z Time DirectDepoE ProcName [secondaries]
@@ -34,7 +34,12 @@ void SteppingAction::UserSteppingAction(const G4Step *step)
     ss << pos[0] << ' ' << pos[1] << ' ' << pos[2] << ' ';
     ss << step->GetPostStepPoint()->GetGlobalTime()/ns << ' ';
     ss << step->GetTotalEnergyDeposit()/keV << ' ';
-    ss << (proc ? proc->GetProcessName() : '?');
+    if (proc)
+    {
+        if (proc->GetProcessType() == fTransportation) ss << 'T';
+        else ss << proc->GetProcessName();
+    }
+    else ss << '?';
 
     const int numSec = step->GetNumberOfSecondariesInCurrentStep();
     if (numSec > 0)
