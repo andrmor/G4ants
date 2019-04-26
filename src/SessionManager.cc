@@ -38,7 +38,7 @@ void SessionManager::startSession()
     prepareOutputDepoStream();
 
     // preparing ouptut for track export
-    if (NumberEventsForTrackExport > 0) prepareOutputTracks();
+    if (CollectHistory != NotCollecting) prepareOutputTracks();
 
     //set random generator. The seed was provided in the config file
     CLHEP::RanecuEngine* randGen = new CLHEP::RanecuEngine();
@@ -81,9 +81,6 @@ void SessionManager::runSimulation()
 void SessionManager::onRunFinished()
 {
     updateEventId();
-
-    if (NumberEventsForTrackExport > 0)
-        NumberEventsForTrackExport--;
 }
 
 void SessionManager::updateEventId()
@@ -225,6 +222,7 @@ void SessionManager::prepareParticleCollection()
     }
 }
 
+#include <QDebug>
 void SessionManager::ReadConfig(const std::string &ConfigFileName)
 {
     //opening config file
@@ -318,11 +316,22 @@ void SessionManager::ReadConfig(const std::string &ConfigFileName)
     bGuiMode = jo["GuiMode"].bool_value();
 
     //Tracks export
-    NumberEventsForTrackExport = jo["MaxEventsForTrackExport"].int_value();
+    //json["LogHistory"] = bLogHistory;
+    //json["BuildTracks"] = bBuildTracks;
+    //if (bBuildTracks) json["MaxTracks"] = maxTracks;
+    //NumberEventsForTrackExport = jo["MaxEventsForTrackExport"].int_value();
+    bool bBuildTracks = jo["BuildTracks"].bool_value();
+    bool bLogHistory = jo["LogHistory"].bool_value();
+    TracksToBuild = jo["MaxTracks"].int_value();
     FileName_Tracks = jo["File_Tracks"].string_value();
-    if (NumberEventsForTrackExport > 0 && FileName_Tracks.empty())
+    if ( (bBuildTracks || bLogHistory) && FileName_Tracks.empty())
         terminateSession("File name with tracks to export was not provided");
 
+    if (bLogHistory) CollectHistory = FullLog;
+    else if (bBuildTracks && TracksToBuild > 0) CollectHistory = OnlyTracks;
+    else CollectHistory = NotCollecting;
+
+    qDebug() << "|||||||||||||||||||||||||||\n"<< (int)CollectHistory<<TracksToBuild;
 }
 
 void SessionManager::prepareInputStream()

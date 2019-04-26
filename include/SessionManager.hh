@@ -54,8 +54,6 @@ class SessionManager
         int findParticle(const std::string & particleName);  // change to pointer search?
         int findMaterial(const std::string & materialName);  // change to pointer search?
 
-        int getNumEventsForTrackExport() const {return NumberEventsForTrackExport;}
-
         void sendLineToDepoOutput(const std::string & text);
         void sendLineToDepoOutput(const std::stringstream & text);
 
@@ -70,6 +68,10 @@ public:
         //runtime
         double DepoByRegistered = 0;
         double DepoByNotRegistered = 0;
+
+        enum HistoryMode {NotCollecting, OnlyTracks, FullLog};
+        HistoryMode CollectHistory = NotCollecting;
+        int TracksToBuild = 0;
 
     private:
         void prepareParticleCollection();
@@ -99,7 +101,8 @@ public:
         std::ofstream * outStreamTracks = 0;
         std::vector<ParticleRecord> GeneratedPrimaries;
         bool bGuiMode = false;
-        int NumberEventsForTrackExport = 0;
+        //int NumberEventsForTrackExport = 0;
+
         int NextTrackID = 1;
 
         std::unordered_set<std::string> SeenNotRegisteredParticles;

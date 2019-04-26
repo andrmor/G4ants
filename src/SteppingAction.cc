@@ -19,7 +19,7 @@ SteppingAction::~SteppingAction(){}
 void SteppingAction::UserSteppingAction(const G4Step *step)
 {
     SessionManager & SM = SessionManager::getInstance();
-    if (SM.getNumEventsForTrackExport() == 0) return; // use stepping action only for recording of telemetry
+    if (SM.CollectHistory == SessionManager::NotCollecting) return; // use stepping action only for recording of telemetry
 
     const G4VProcess * proc = step->GetPostStepPoint()->GetProcessDefinedStep();
     if (proc && proc->GetProcessType() == fTransportation)

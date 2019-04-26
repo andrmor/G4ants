@@ -21,7 +21,7 @@ void ActionInitialization::Build() const
     //SetUserAction(new EventAction);
 
     SessionManager & SM = SessionManager::getInstance();
-    if (SM.getNumEventsForTrackExport() > 0)
+    if (SM.CollectHistory != SessionManager::NotCollecting)
     {
         SetUserAction(new TrackingAction);
         SetUserAction(new SteppingAction);

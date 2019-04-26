@@ -21,7 +21,7 @@ void RunAction::BeginOfRunAction(const G4Run*)
 
     SM.sendLineToDepoOutput(SM.getEventId());
 
-    if (SM.getNumEventsForTrackExport() > 0)
+    if (SM.CollectHistory != SessionManager::NotCollecting)
         SM.sendLineToTracksOutput(SM.getEventId());
 
     //inform the runManager to save random number seed             *** need?

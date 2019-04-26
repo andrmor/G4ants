@@ -18,7 +18,7 @@ TrackingAction::~TrackingAction(){}
 void TrackingAction::PreUserTrackingAction(const G4Track *track)
 {
     SessionManager & SM = SessionManager::getInstance();
-    if (SM.getNumEventsForTrackExport() == 0) return;
+    if (SM.CollectHistory == SessionManager::NotCollecting) return;
 
     // format:
     // TrackID ParentTrackID ParticleId X Y Z Time E
@@ -36,11 +36,15 @@ void TrackingAction::PreUserTrackingAction(const G4Track *track)
     SM.sendLineToTracksOutput(ss);
 }
 
-/*
 void TrackingAction::PostUserTrackingAction(const G4Track *)
 {
     SessionManager & SM = SessionManager::getInstance();
+    if (SM.CollectHistory == SessionManager::NotCollecting) return;
 
-    SM.sendLineToTracksOutput(" track removed");
+    if (SM.CollectHistory == SessionManager::OnlyTracks)
+    {
+        SM.TracksToBuild--;
+        if (SM.TracksToBuild <= 0)
+            SM.CollectHistory = SessionManager::NotCollecting;
+    }
 }
-*/
