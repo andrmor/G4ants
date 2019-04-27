@@ -36,7 +36,11 @@ void SteppingAction::UserSteppingAction(const G4Step *step)
     ss << step->GetTotalEnergyDeposit()/keV << ' ';
     if (proc)
     {
-        if (proc->GetProcessType() == fTransportation) ss << 'T';
+        if (proc->GetProcessType() == fTransportation)
+        {
+            if (step->GetPostStepPoint()->GetStepStatus() != fWorldBoundary) ss << 'T';
+            else ss << "O";
+        }
         else ss << proc->GetProcessName();
     }
     else ss << '?';
