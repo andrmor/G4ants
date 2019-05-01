@@ -33,6 +33,7 @@ void SteppingAction::UserSteppingAction(const G4Step *step)
     const G4ThreeVector & pos = step->GetPostStepPoint()->GetPosition();
     ss << pos[0] << ' ' << pos[1] << ' ' << pos[2] << ' ';
     ss << step->GetPostStepPoint()->GetGlobalTime()/ns << ' ';
+    ss << step->GetPostStepPoint()->GetKineticEnergy()/keV << ' ';
     ss << step->GetTotalEnergyDeposit()/keV << ' ';
     if (proc)
     {
