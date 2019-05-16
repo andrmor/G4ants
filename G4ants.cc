@@ -6,13 +6,27 @@
 
 #include "G4RunManager.hh"
 #include "G4UImanager.hh"
-//#include "FTFP_BERT.hh"
-//#include "QGSP_BERT_HP.hh"
-#include "QGSP_BIC_HP.hh"
 #include "G4StepLimiterPhysics.hh"
 #include "G4VisExecutive.hh"
 #include "G4UIExecutive.hh"
 #include "G4GDMLParser.hh"
+
+#include "QGSP_BIC.hh"
+#include "QGSP_BIC_HP.hh"
+#include "QGSP_BIC_AllHP.hh"
+
+#include "QGSP_BERT.hh"
+#include "QGSP_BERT_HP.hh"
+#include "QGSP_FTFP_BERT.hh"
+#include "QGSP_INCLXX.hh"
+#include "QGSP_INCLXX_HP.hh"
+
+#include "FTFP_BERT.hh"
+#include "FTFP_BERT_ATL.hh"
+#include "FTFP_BERT_HP.hh"
+#include "FTFP_BERT_TRV.hh"
+#include "FTFP_INCLXX.hh"
+#include "FTFP_INCLXX_HP.hh"
 
 int main(int argc, char** argv)
 {
@@ -31,8 +45,26 @@ int main(int argc, char** argv)
     // need to implement own G4excpetion-based handler class  ->  SM.terminateSession("Error parsing GDML file");
     runManager->SetUserInitialization(new DetectorConstruction(parser.GetWorldVolume()));
 
-    //G4VModularPhysicsList* physicsList = new QGSP_BERT_HP; //FTFP_BERT
-    G4VModularPhysicsList* physicsList = new QGSP_BIC_HP;
+    std::string pl = SM.getPhysicsList();
+    G4VModularPhysicsList *          physicsList = nullptr;
+    if      (pl == "QGSP_BIC")       physicsList = new QGSP_BIC();
+    else if (pl == "QGSP_BIC_HP")    physicsList = new QGSP_BIC_HP();
+    else if (pl == "QGSP_BIC_AllHP") physicsList = new QGSP_BIC_AllHP();
+    else if (pl == "QGSP_BERT")      physicsList = new QGSP_BERT();
+    else if (pl == "QGSP_BERT_HP")   physicsList = new QGSP_BERT_HP();
+    else if (pl == "QGSP_FTFP_BERT") physicsList = new QGSP_FTFP_BERT();
+    else if (pl == "QGSP_INCLXX")    physicsList = new QGSP_INCLXX();
+    else if (pl == "QGSP_INCLXX_HP") physicsList = new QGSP_INCLXX_HP();
+    else if (pl == "FTFP_BERT")      physicsList = new FTFP_BERT();
+    else if (pl == "FTFP_BERT_ATL")  physicsList = new FTFP_BERT_ATL();
+    else if (pl == "FTFP_BERT_HP")   physicsList = new FTFP_BERT_HP();
+    else if (pl == "FTFP_BERT_TRV")  physicsList = new FTFP_BERT_TRV();
+    else if (pl == "FTFP_INCLXX")    physicsList = new FTFP_INCLXX();
+    else if (pl == "FTFP_INCLXX_HP") physicsList = new FTFP_INCLXX_HP();
+
+    if (!physicsList)
+        SM.terminateSession("Unknown reference physics list");
+
     physicsList->RegisterPhysics(new G4StepLimiterPhysics());
     runManager->SetUserInitialization(physicsList);
 

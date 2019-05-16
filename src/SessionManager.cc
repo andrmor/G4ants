@@ -238,9 +238,18 @@ void SessionManager::ReadConfig(const std::string &ConfigFileName)
     if (!err.empty())
         terminateSession(err);
 
+    //extracting name of the receipt file - should be first so we can report back to known receipt file!
+    FileName_Receipt = jo["File_Receipt"].string_value();
+    if (FileName_Receipt.empty())
+        terminateSession("File name for receipt was not provided");
+
     GDML = jo["GDML"].string_value();
     if (GDML.empty())
         terminateSession("GDML file name is not provided");
+
+    PhysicsList = jo["PhysicsList"].string_value();
+    if (PhysicsList.empty())
+        terminateSession("Reference physics list is not provided");
 
     //extracting name of the file with primaries to generate
     FileName_Input = jo["File_Primaries"].string_value();
@@ -251,11 +260,6 @@ void SessionManager::ReadConfig(const std::string &ConfigFileName)
     FileName_Output = jo["File_Deposition"].string_value();
     if (FileName_Output.empty())
         terminateSession("File name for deposition output was not provided");
-
-    //extracting name of the receipt file
-    FileName_Receipt = jo["File_Receipt"].string_value();
-    if (FileName_Output.empty())
-        terminateSession("File name for receipt was not provided");
 
     //read list of sensitive volumes - they will be linked to SensitiveDetector
     std::vector<json11::Json> arSV = jo["SensitiveVolumes"].array_items();
@@ -393,4 +397,5 @@ void SessionManager::generateReceipt()
     outStream.open(FileName_Receipt);
     if (outStream.is_open())
         outStream << json_str << std::endl;
+    outStream.close();
 }

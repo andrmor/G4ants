@@ -46,6 +46,7 @@ class SessionManager
         void onRunFinished();
         bool isGuiMode() const {return bGuiMode;}
         const std::string & getGDML() const {return GDML;}
+        const std::string & getPhysicsList() const {return PhysicsList;}
         const std::string & getEventId() const {return EventId;}
         void updateEventId();
         std::vector<ParticleRecord> & getNextEventPrimaries();
@@ -90,6 +91,7 @@ public:
         std::string EventId;
         std::string NextEventId;
         std::string GDML;
+        std::string PhysicsList;
         std::vector<json11::Json> ParticleJsonArray;
         std::vector<G4ParticleDefinition*> ParticleCollection; // does not own
         std::map<std::string, int> ParticleMap;
