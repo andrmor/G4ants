@@ -74,6 +74,11 @@ void SessionManager::runSimulation()
     DepoByRegistered = 0;
     DepoByNotRegistered = 0;
 
+    EventsDone = 0;
+    ProgressLastReported = 0;
+    if (NumEventsToDo != 0)
+        ProgressInc = 100.0 / NumEventsToDo;
+
     while (!isEndOfInputFileReached())
         UImanager->ApplyCommand("/run/beamOn");
 }
@@ -81,6 +86,14 @@ void SessionManager::runSimulation()
 void SessionManager::onRunFinished()
 {
     updateEventId();
+
+    EventsDone++;
+    double Progress = (double)EventsDone * ProgressInc;
+    if (Progress - ProgressLastReported > 1.0) //1% intervales
+    {
+        std::cout << "$$progress>" << (int)Progress << "<$$"<< std::endl << std::flush;
+        ProgressLastReported = Progress;
+    }
 }
 
 void SessionManager::updateEventId()
@@ -317,6 +330,8 @@ void SessionManager::ReadConfig(const std::string &ConfigFileName)
     }
 
     bGuiMode = jo["GuiMode"].bool_value();
+
+    NumEventsToDo = jo["NumEvents"].int_value();
 
     //Tracks export
     //json["LogHistory"] = bLogHistory;

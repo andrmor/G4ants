@@ -103,6 +103,11 @@ public:
         std::ofstream * outStreamTracks = 0;
         std::vector<ParticleRecord> GeneratedPrimaries;
         bool bGuiMode = false;
+
+        int EventsDone = 0;
+        int NumEventsToDo = 0;
+        double ProgressLastReported = 0;
+        double ProgressInc = 1.0;
         //int NumberEventsForTrackExport = 0;
 
         int NextTrackID = 1;
