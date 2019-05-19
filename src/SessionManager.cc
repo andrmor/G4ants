@@ -50,7 +50,7 @@ void SessionManager::startSession()
 
 void SessionManager::terminateSession(const std::string & ReturnMessage)
 {
-    std::cout << "Terminating session with the message:\n"<<ReturnMessage<<std::endl;
+    std::cout << "$$>"<<ReturnMessage<<std::endl;
 
     bError = true;
     ErrorMessage = ReturnMessage;
@@ -222,7 +222,6 @@ void SessionManager::prepareParticleCollection()
     }
 }
 
-#include <QDebug>
 void SessionManager::ReadConfig(const std::string &ConfigFileName)
 {
     //opening config file
@@ -334,8 +333,6 @@ void SessionManager::ReadConfig(const std::string &ConfigFileName)
     if (bLogHistory) CollectHistory = FullLog;
     else if (bBuildTracks && TracksToBuild > 0) CollectHistory = OnlyTracks;
     else CollectHistory = NotCollecting;
-
-    qDebug() << "|||||||||||||||||||||||||||\n"<< (int)CollectHistory<<TracksToBuild;
 }
 
 void SessionManager::prepareInputStream()
