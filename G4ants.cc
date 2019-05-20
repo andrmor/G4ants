@@ -70,8 +70,6 @@ int main(int argc, char** argv)
 
     runManager->SetUserInitialization(new ActionInitialization());
 
-    SM.SetStepControl();
-
     G4UImanager* UImanager = G4UImanager::GetUIpointer();
     UImanager->ApplyCommand("/run/initialize");
     UImanager->ApplyCommand("/control/verbose 0");

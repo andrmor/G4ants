@@ -276,7 +276,7 @@ void SessionManager::ReadConfig(const std::string &ConfigFileName)
     //read list of sensitive volumes - they will be linked to SensitiveDetector
     std::vector<json11::Json> arSV = jo["SensitiveVolumes"].array_items();
     if (arSV.empty())
-        terminateSession("Sensitive volumes are not provided in the configuration file!");
+        WarningMessages.push_back("Sensitive volumes are not provided in the configuration file!");
     SensitiveVolumes.clear();
     std::cout << "Sensitive volumes:" << std::endl;
     for (auto & j : arSV)
@@ -334,11 +334,11 @@ void SessionManager::ReadConfig(const std::string &ConfigFileName)
     std::vector<json11::Json> StepLimitArray = jo["StepLimits"].array_items();
     if (!StepLimitArray.empty())
     {
+        std::cout << "Defined step limiters:" << std::endl;
         for (size_t i=0; i<StepLimitArray.size(); i++)
         {
             const json11::Json & el = StepLimitArray[i];
             std::vector<json11::Json> par = el.array_items();
-            std::cout << "Defined step limiters:" << std::endl;
             if (par.size() > 1)
             {
                 std::string vol = par[0].string_value();
@@ -368,38 +368,6 @@ void SessionManager::ReadConfig(const std::string &ConfigFileName)
     if (bLogHistory) CollectHistory = FullLog;
     else if (bBuildTracks && TracksToBuild > 0) CollectHistory = OnlyTracks;
     else CollectHistory = NotCollecting;
-}
-
-#include "G4LogicalVolumeStore.hh"
-#include <QDebug>
-#include "G4SystemOfUnits.hh"
-#include "G4UserLimits.hh"
-void SessionManager::SetStepControl()
-{
-    if (StepLimitMap.empty()) return;
-
-    G4LogicalVolumeStore* lvs = G4LogicalVolumeStore::GetInstance();
-    for (auto const & it : StepLimitMap)
-    {
-        std::string VolName = it.first;
-        G4LogicalVolume * v = lvs->GetVolume("PrScint");
-        if (!v)
-        {
-            terminateSession("Step limiter: not found volume " + VolName);
-            return;
-        }
-
-        double step = it.second * mm;
-        if (step == 0)
-        {
-            terminateSession("Found zero step limit for volume " + VolName);
-            return;
-        }
-
-        G4UserLimits * stepLimit = new G4UserLimits(step);
-        v->SetUserLimits(stepLimit);
-        //stepLimit->SetMaxAllowedStep(maxStep);
-    }
 }
 
 void SessionManager::prepareInputStream()

@@ -19,6 +19,7 @@ private:
     G4VPhysicalVolume *fWorld;
 
     bool isAccordingTo(const std::string & name, const std::string & wildcard) const;
+    void setStepLimiters();
 };
 
 #endif // DetectorConstruction_h

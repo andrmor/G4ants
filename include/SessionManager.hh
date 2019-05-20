@@ -36,7 +36,6 @@ class SessionManager
         void operator=(SessionManager const&) = delete;
 
         void ReadConfig(const std::string & ConfigFileName);
-        void SetStepControl();
 
         void startSession();
         void terminateSession(const std::string & ReturnMessage); //calls exit()!
@@ -53,6 +52,7 @@ class SessionManager
         std::vector<ParticleRecord> & getNextEventPrimaries();
         bool isEndOfInputFileReached() const;
         const std::vector<std::string> & getListOfSensitiveVolumes() const {return SensitiveVolumes;}
+        const std::map<std::string, double> & getStepLimitMap() const {return StepLimitMap;}
         int findParticle(const std::string & particleName);  // change to pointer search?
         int findMaterial(const std::string & materialName);  // change to pointer search?
 
@@ -119,7 +119,7 @@ public:
         //to report back to ants2
         bool bError;
         std::string ErrorMessage;
-        //std::vector<std::string> WarningMessages;
+        std::vector<std::string> WarningMessages;
 };
 
 #endif // SESSIONMANAGER_H
