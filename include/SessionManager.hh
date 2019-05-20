@@ -36,6 +36,7 @@ class SessionManager
         void operator=(SessionManager const&) = delete;
 
         void ReadConfig(const std::string & ConfigFileName);
+        void SetStepControl();
 
         void startSession();
         void terminateSession(const std::string & ReturnMessage); //calls exit()!
@@ -98,6 +99,7 @@ public:
         std::map<std::string, int> MaterialMap;
         std::vector<std::string> SensitiveVolumes;
         std::vector<std::string> OnStartCommands;
+        std::map<std::string, double> StepLimitMap;
         std::ifstream * inStreamPrimaries = 0;
         std::ofstream * outStreamDeposition = 0;
         std::ofstream * outStreamTracks = 0;
@@ -117,6 +119,7 @@ public:
         //to report back to ants2
         bool bError;
         std::string ErrorMessage;
+        //std::vector<std::string> WarningMessages;
 };
 
 #endif // SESSIONMANAGER_H

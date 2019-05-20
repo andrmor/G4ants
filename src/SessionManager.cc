@@ -329,6 +329,26 @@ void SessionManager::ReadConfig(const std::string &ConfigFileName)
         MaterialMap[name] = (int)i;
     }
 
+    //extracting step limits
+    StepLimitMap.clear();
+    std::vector<json11::Json> StepLimitArray = jo["StepLimits"].array_items();
+    if (!StepLimitArray.empty())
+    {
+        for (size_t i=0; i<StepLimitArray.size(); i++)
+        {
+            const json11::Json & el = StepLimitArray[i];
+            std::vector<json11::Json> par = el.array_items();
+            std::cout << "Defined step limiters:" << std::endl;
+            if (par.size() > 1)
+            {
+                std::string vol = par[0].string_value();
+                double step     = par[1].number_value();
+                StepLimitMap[vol] = step;
+                std::cout << vol << " -> " << step << " mm" << std::endl;
+            }
+        }
+    }
+
     bGuiMode = jo["GuiMode"].bool_value();
 
     NumEventsToDo = jo["NumEvents"].int_value();
@@ -348,6 +368,38 @@ void SessionManager::ReadConfig(const std::string &ConfigFileName)
     if (bLogHistory) CollectHistory = FullLog;
     else if (bBuildTracks && TracksToBuild > 0) CollectHistory = OnlyTracks;
     else CollectHistory = NotCollecting;
+}
+
+#include "G4LogicalVolumeStore.hh"
+#include <QDebug>
+#include "G4SystemOfUnits.hh"
+#include "G4UserLimits.hh"
+void SessionManager::SetStepControl()
+{
+    if (StepLimitMap.empty()) return;
+
+    G4LogicalVolumeStore* lvs = G4LogicalVolumeStore::GetInstance();
+    for (auto const & it : StepLimitMap)
+    {
+        std::string VolName = it.first;
+        G4LogicalVolume * v = lvs->GetVolume("PrScint");
+        if (!v)
+        {
+            terminateSession("Step limiter: not found volume " + VolName);
+            return;
+        }
+
+        double step = it.second * mm;
+        if (step == 0)
+        {
+            terminateSession("Found zero step limit for volume " + VolName);
+            return;
+        }
+
+        G4UserLimits * stepLimit = new G4UserLimits(step);
+        v->SetUserLimits(stepLimit);
+        //stepLimit->SetMaxAllowedStep(maxStep);
+    }
 }
 
 void SessionManager::prepareInputStream()
@@ -399,8 +451,8 @@ void SessionManager::generateReceipt()
     receipt["DepoByNotRegistered"] = DepoByNotRegistered;
 
     json11::Json::array NRP;
-    for (const std::string & s : SeenNotRegisteredParticles)
-        NRP.push_back(s);
+    for (const std::string & snr : SeenNotRegisteredParticles)
+        NRP.push_back(snr);
     if (!NRP.empty()) receipt["SeenNotRegisteredParticles"] = NRP;
 
     std::string json_str = json11::Json(receipt).dump();

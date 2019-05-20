@@ -9,9 +9,9 @@ StackingAction::StackingAction() {}
 
 StackingAction::~StackingAction() {}
 
-G4ClassificationOfNewTrack StackingAction::ClassifyNewTrack(const G4Track *track)
+G4ClassificationOfNewTrack StackingAction::ClassifyNewTrack(const G4Track * /*track*/)
 {
-    SessionManager & SM = SessionManager::getInstance();
+    //SessionManager & SM = SessionManager::getInstance();
 
     // WARNING!
     //deleting the tracks or assigning to special stacks will upset the track ID prediction system:
