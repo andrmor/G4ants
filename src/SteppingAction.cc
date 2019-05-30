@@ -11,6 +11,7 @@
 //#include "G4StackManager.hh"
 
 #include <iostream>
+#include <iomanip>
 
 SteppingAction::SteppingAction(){}
 
@@ -31,7 +32,9 @@ void SteppingAction::UserSteppingAction(const G4Step *step)
 
     std::stringstream ss;
     const G4ThreeVector & pos = step->GetPostStepPoint()->GetPosition();
+    ss.precision(10);
     ss << pos[0] << ' ' << pos[1] << ' ' << pos[2] << ' ';
+    ss.precision(6);
     ss << step->GetPostStepPoint()->GetGlobalTime()/ns << ' ';
     ss << step->GetPostStepPoint()->GetKineticEnergy()/keV << ' ';
     ss << step->GetTotalEnergyDeposit()/keV << ' ';
