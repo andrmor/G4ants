@@ -28,13 +28,13 @@ void TrackingAction::PreUserTrackingAction(const G4Track *track)
     ss << '>';
     ss << track->GetTrackID() << ' ';
     ss << track->GetParentID() << ' ';
-    //ss << SM.findParticle( track->GetParticleDefinition()->GetParticleName() ) << ' ';
+        //ss << SM.findParticle( track->GetParticleDefinition()->GetParticleName() ) << ' ';
     ss << track->GetParticleDefinition()->GetParticleName() << ' ';
-    //ss << SM.findMaterial( track->GetVolume()->GetLogicalVolume()->GetMaterial()->GetName() ) << ' ';
+        //ss << SM.findMaterial( track->GetVolume()->GetLogicalVolume()->GetMaterial()->GetName() ) << ' ';
     const G4ThreeVector & pos = track->GetPosition();
-    ss.precision(SM.PositionPrecision);
+    ss.precision(SM.PrecisionXYZ);
     ss << pos[0] << ' ' << pos[1] << ' ' << pos[2] << ' ';
-    ss.precision(6);
+    ss.precision(SM.Precision);
     ss << track->GetGlobalTime()/ns << ' ';
     ss << track->GetKineticEnergy()/keV;
     SM.sendLineToTracksOutput(ss);

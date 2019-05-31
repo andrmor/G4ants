@@ -364,7 +364,8 @@ void SessionManager::ReadConfig(const std::string &ConfigFileName)
     else if (bBuildTracks && TracksToBuild > 0) CollectHistory = OnlyTracks;
     else CollectHistory = NotCollecting;
 
-    PositionPrecision = jo["PositionPrecision"].int_value();
+    PrecisionXYZ = jo["PrecisionXYZ"].int_value();
+    Precision    = jo["Precision"].int_value();
 }
 
 void SessionManager::prepareInputStream()

@@ -75,7 +75,8 @@ public:
         HistoryMode CollectHistory = NotCollecting;
         int TracksToBuild = 0;
 
-        int PositionPrecision = 10;
+        int PrecisionXYZ = 10;
+        int Precision    = 6;
 
     private:
         void prepareParticleCollection();

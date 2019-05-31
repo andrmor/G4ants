@@ -30,10 +30,11 @@ G4bool SensitiveDetector::ProcessHits(G4Step* aStep, G4TouchableHistory*)
     std::stringstream ss;
     ss << iPart << ' ';
     ss << iMat << ' ';
+    ss.precision(SM.Precision);
     ss << edep << ' ';
-    ss.precision(SM.PositionPrecision);
+    ss.precision(SM.PrecisionXYZ);
     ss << pos[0] << ' ' << pos[1] << ' ' << pos[2] << ' ';
-    ss.precision(6);
+    ss.precision(SM.Precision);
     ss << aStep->GetPostStepPoint()->GetGlobalTime()/ns;
     SM.sendLineToDepoOutput(ss);
 
