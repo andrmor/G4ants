@@ -10,6 +10,7 @@
 
 #include <iostream>
 #include <sstream>
+#include <iomanip>
 
 TrackingAction::TrackingAction(){}
 
@@ -31,7 +32,9 @@ void TrackingAction::PreUserTrackingAction(const G4Track *track)
     ss << track->GetParticleDefinition()->GetParticleName() << ' ';
     //ss << SM.findMaterial( track->GetVolume()->GetLogicalVolume()->GetMaterial()->GetName() ) << ' ';
     const G4ThreeVector & pos = track->GetPosition();
+    ss.precision(SM.PositionPrecision);
     ss << pos[0] << ' ' << pos[1] << ' ' << pos[2] << ' ';
+    ss.precision(6);
     ss << track->GetGlobalTime()/ns << ' ';
     ss << track->GetKineticEnergy()/keV;
     SM.sendLineToTracksOutput(ss);

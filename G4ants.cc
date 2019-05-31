@@ -2,8 +2,6 @@
 #include "DetectorConstruction.hh"
 #include "ActionInitialization.hh"
 
-//#include <chrono>
-
 #include "G4RunManager.hh"
 #include "G4UImanager.hh"
 #include "G4StepLimiterPhysics.hh"

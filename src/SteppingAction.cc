@@ -32,7 +32,7 @@ void SteppingAction::UserSteppingAction(const G4Step *step)
 
     std::stringstream ss;
     const G4ThreeVector & pos = step->GetPostStepPoint()->GetPosition();
-    ss.precision(10);
+    ss.precision(SM.PositionPrecision);
     ss << pos[0] << ' ' << pos[1] << ' ' << pos[2] << ' ';
     ss.precision(6);
     ss << step->GetPostStepPoint()->GetGlobalTime()/ns << ' ';

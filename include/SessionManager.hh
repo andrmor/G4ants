@@ -75,6 +75,8 @@ public:
         HistoryMode CollectHistory = NotCollecting;
         int TracksToBuild = 0;
 
+        int PositionPrecision = 10;
+
     private:
         void prepareParticleCollection();
         void prepareInputStream();
@@ -110,7 +112,6 @@ public:
         int NumEventsToDo = 0;
         double ProgressLastReported = 0;
         double ProgressInc = 1.0;
-        //int NumberEventsForTrackExport = 0;
 
         int NextTrackID = 1;
 

@@ -250,7 +250,7 @@ void SessionManager::ReadConfig(const std::string &ConfigFileName)
     if (!err.empty())
         terminateSession(err);
 
-    //extracting name of the receipt file - should be first so we can report back to known receipt file!
+    //extracting name of the receipt file - should be first so we can report back to the known receipt file!
     FileName_Receipt = jo["File_Receipt"].string_value();
     if (FileName_Receipt.empty())
         terminateSession("File name for receipt was not provided");
@@ -353,11 +353,6 @@ void SessionManager::ReadConfig(const std::string &ConfigFileName)
 
     NumEventsToDo = jo["NumEvents"].int_value();
 
-    //Tracks export
-    //json["LogHistory"] = bLogHistory;
-    //json["BuildTracks"] = bBuildTracks;
-    //if (bBuildTracks) json["MaxTracks"] = maxTracks;
-    //NumberEventsForTrackExport = jo["MaxEventsForTrackExport"].int_value();
     bool bBuildTracks = jo["BuildTracks"].bool_value();
     bool bLogHistory = jo["LogHistory"].bool_value();
     TracksToBuild = jo["MaxTracks"].int_value();
@@ -368,6 +363,8 @@ void SessionManager::ReadConfig(const std::string &ConfigFileName)
     if (bLogHistory) CollectHistory = FullLog;
     else if (bBuildTracks && TracksToBuild > 0) CollectHistory = OnlyTracks;
     else CollectHistory = NotCollecting;
+
+    PositionPrecision = jo["PositionPrecision"].int_value();
 }
 
 void SessionManager::prepareInputStream()
