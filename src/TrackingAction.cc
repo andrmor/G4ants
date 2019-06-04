@@ -25,6 +25,8 @@ void TrackingAction::PreUserTrackingAction(const G4Track *track)
     // TrackID ParentTrackID ParticleId X Y Z Time E iMat VolName VolIndex
 
     std::stringstream ss;
+    ss.precision(SM.Precision);
+
     ss << '>';
     ss << track->GetTrackID() << ' ';
     ss << track->GetParentID() << ' ';
@@ -32,9 +34,7 @@ void TrackingAction::PreUserTrackingAction(const G4Track *track)
     ss << track->GetParticleDefinition()->GetParticleName() << ' ';
         //ss << track->GetVolume()->GetLogicalVolume()->GetName();//   ->GetLogicalVolume()->GetMaterial()->GetName() ) << ' ';
     const G4ThreeVector & pos = track->GetPosition();
-    ss.precision(SM.PrecisionXYZ);
     ss << pos[0] << ' ' << pos[1] << ' ' << pos[2] << ' ';
-    ss.precision(SM.Precision);
     ss << track->GetGlobalTime()/ns << ' ';
     ss << track->GetKineticEnergy()/keV << ' ';
 
