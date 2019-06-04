@@ -27,27 +27,47 @@ void SteppingAction::UserSteppingAction(const G4Step *step)
         if (step->GetPostStepPoint()->GetStepStatus() != fWorldBoundary && SM.CollectHistory == SessionManager::OnlyTracks)
             return; // skip transportation if only collecting tracks
 
-    // format:
-    // X Y Z Time DirectDepoE ProcName [secondaries]
+    // format for "T" processes:
+    // ProcName X Y Z Time KinE DirectDepoE iMatTo VolNameTo VolIndexTo [secondaries]
+    // not that if energy depo is present on T step, it is in the previous volume!
+
+    // format for all other processes:
+    // ProcName X Y Z Time KinE DirectDepoE [secondaries]
 
     std::stringstream ss;
-    const G4ThreeVector & pos = step->GetPostStepPoint()->GetPosition();
-    ss.precision(SM.PrecisionXYZ);
-    ss << pos[0] << ' ' << pos[1] << ' ' << pos[2] << ' ';
-    ss.precision(SM.Precision);
-    ss << step->GetPostStepPoint()->GetGlobalTime()/ns << ' ';
-    ss << step->GetPostStepPoint()->GetKineticEnergy()/keV << ' ';
-    ss << step->GetTotalEnergyDeposit()/keV << ' ';
+
+    bool bTransport = false;
+
     if (proc)
     {
         if (proc->GetProcessType() == fTransportation)
         {
-            if (step->GetPostStepPoint()->GetStepStatus() != fWorldBoundary) ss << 'T';
-            else ss << "O";
+            if (step->GetPostStepPoint()->GetStepStatus() != fWorldBoundary)
+            {
+                ss << 'T';
+                bTransport = true;
+            }
+            else ss << 'O';
         }
         else ss << proc->GetProcessName();
     }
     else ss << '?';
+
+    const G4ThreeVector & pos = step->GetPostStepPoint()->GetPosition();
+    ss.precision(SM.PrecisionXYZ);
+    ss << ' ' << pos[0] << ' ' << pos[1] << ' ' << pos[2] << ' ';
+    ss.precision(SM.Precision);
+    ss << step->GetPostStepPoint()->GetGlobalTime()/ns << ' ';
+    ss << step->GetPostStepPoint()->GetKineticEnergy()/keV << ' ';
+    ss << step->GetTotalEnergyDeposit()/keV;
+
+    if (bTransport)
+    {
+        const int iMat = SM.findMaterial( step->GetPostStepPoint()->GetMaterial()->GetName() ); //will terminate session if not found!
+        ss << ' ' << iMat << ' ';
+        ss << step->GetPostStepPoint()->GetPhysicalVolume()->GetLogicalVolume()->GetName() << ' ';
+        ss << step->GetPostStepPoint()->GetPhysicalVolume()->GetCopyNo() << ' ';
+    }
 
     const int numSec = step->GetNumberOfSecondariesInCurrentStep();
     if (numSec > 0)
