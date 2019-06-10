@@ -11,7 +11,7 @@
 #include <iostream>
 #include <sstream>
 #include <iomanip>
-
+#include <QDebug>
 TrackingAction::TrackingAction(){}
 
 TrackingAction::~TrackingAction(){}
@@ -22,21 +22,27 @@ void TrackingAction::PreUserTrackingAction(const G4Track *track)
     if (SM.CollectHistory == SessionManager::NotCollecting) return;
 
     // format:
-    // TrackID ParentTrackID ParticleId X Y Z Time E
+    // TrackID ParentTrackID ParticleId X Y Z Time E iMat VolName VolIndex
 
     std::stringstream ss;
+    ss.precision(SM.Precision);
+
     ss << '>';
     ss << track->GetTrackID() << ' ';
     ss << track->GetParentID() << ' ';
         //ss << SM.findParticle( track->GetParticleDefinition()->GetParticleName() ) << ' ';
     ss << track->GetParticleDefinition()->GetParticleName() << ' ';
-        //ss << SM.findMaterial( track->GetVolume()->GetLogicalVolume()->GetMaterial()->GetName() ) << ' ';
+        //ss << track->GetVolume()->GetLogicalVolume()->GetName();//   ->GetLogicalVolume()->GetMaterial()->GetName() ) << ' ';
     const G4ThreeVector & pos = track->GetPosition();
-    ss.precision(SM.PrecisionXYZ);
     ss << pos[0] << ' ' << pos[1] << ' ' << pos[2] << ' ';
-    ss.precision(SM.Precision);
     ss << track->GetGlobalTime()/ns << ' ';
-    ss << track->GetKineticEnergy()/keV;
+    ss << track->GetKineticEnergy()/keV << ' ';
+
+    const int iMat = SM.findMaterial( track->GetVolume()->GetLogicalVolume()->GetMaterial()->GetName() ); //will terminate session if not found!
+    ss << iMat << ' ';
+    ss << track->GetVolume()->GetLogicalVolume()->GetName() << ' ';
+    ss << track->GetVolume()->GetCopyNo() << ' ';
+
     SM.sendLineToTracksOutput(ss);
 }
 
