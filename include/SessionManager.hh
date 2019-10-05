@@ -53,6 +53,7 @@ class SessionManager
         std::vector<ParticleRecord> & getNextEventPrimaries();
         bool isEndOfInputFileReached() const;
         const std::vector<std::string> & getListOfSensitiveVolumes() const {return SensitiveVolumes;}
+        std::vector<MonitorSensitiveDetector*> & getMonitors() {return Monitors;}
         const std::map<std::string, double> & getStepLimitMap() const {return StepLimitMap;}
         int findParticle(const std::string & particleName);  // change to pointer search?
         int findMaterial(const std::string & materialName);  // change to pointer search?
@@ -80,6 +81,7 @@ public:
 
     private:
         void prepareParticleCollection();
+        void prepareMonitors();
         void prepareInputStream();
         void prepareOutputDepoStream();
         void prepareOutputTracks();

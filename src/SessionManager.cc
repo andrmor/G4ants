@@ -31,6 +31,9 @@ void SessionManager::startSession()
     //populate particle collection
     prepareParticleCollection();
 
+    //prepare monitors: populate particle pointers
+    prepareMonitors();
+
     // opening file with primaries
     prepareInputStream();
 
@@ -235,6 +238,13 @@ void SessionManager::prepareParticleCollection()
     }
 }
 
+#include "SensitiveDetector.hh"
+void SessionManager::prepareMonitors()
+{
+    for (MonitorSensitiveDetector * m : Monitors)
+        m->pParticleDefinition = G4ParticleTable::GetParticleTable()->FindParticle(m->ParticleName);
+}
+
 void SessionManager::ReadConfig(const std::string &ConfigFileName)
 {
     //opening config file
@@ -369,19 +379,25 @@ void SessionManager::ReadConfig(const std::string &ConfigFileName)
     std::vector<json11::Json> MonitorArray = jo["Monitors"].array_items();
     if (!MonitorArray.empty())
     {
-        std::cout << "Total monitors: " << MonitorArray.size() << std::endl;
+        std::cout << "Monitor array size in config file: " << MonitorArray.size() << std::endl;
+        int numActiveMonitors = 0;
         for (size_t i=0; i<MonitorArray.size(); i++)
         {
-            const json11::Json & el = MonitorArray[i];
-            if (!el.is_null())
+            const json11::Json & mjs = MonitorArray[i];
+            MonitorSensitiveDetector * mobj = nullptr;
+
+            if (!mjs.is_null())
             {
-                std::string vol = el["Name"].string_value();
-                std::string particle = el["ParticleName"].string_value();
-                std::cout << "Vol: " << vol << " Particle: " << particle << std::endl;
-                //double step     = par[1].number_value();
+                numActiveMonitors++;
+                std::string Name = mjs["Name"].string_value();
+                mobj = new MonitorSensitiveDetector(Name);
+                mobj->readFromJson(mjs);
             }
-            else std::cout << "Null element" << std::endl;
+            else std::cout << "Null monitor element" << std::endl;
+
+            Monitors.push_back(mobj);
         }
+        std::cout << "Not-null monitors: " << numActiveMonitors << std::endl;
     }
 }
 

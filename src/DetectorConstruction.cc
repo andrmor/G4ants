@@ -20,6 +20,8 @@ G4VPhysicalVolume* DetectorConstruction::Construct()
 
 void DetectorConstruction::ConstructSDandField()
 {
+    // ---- Energy depositions in sensitive volumes -----
+
     G4String SensitiveDetectorName = "SD";
     SensitiveDetector* pSD = new SensitiveDetector(SensitiveDetectorName);
     G4SDManager::GetSDMpointer()->AddNewDetector(pSD);
@@ -52,6 +54,10 @@ void DetectorConstruction::ConstructSDandField()
         else
             SetSensitiveDetector(sv, pSD, true);
     }
+
+    // ---- Monitors ----
+    for (MonitorSensitiveDetector * mon : SM.getMonitors())
+        SetSensitiveDetector(mon->Name, mon);
 }
 
 bool DetectorConstruction::isAccordingTo(const std::string &name, const std::string & wildcard) const

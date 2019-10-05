@@ -27,14 +27,18 @@ public:
 
     void readFromJson(const json11::Json & json);
 
-    int ParticleIndex;
-    bool bDirect;
-    bool bIndirect;
+    std::string Name;
+    std::string ParticleName;
+
+    G4ParticleDefinition * pParticleDefinition = nullptr;
+
     bool bLower;
     bool bUpper;
+    bool bStopTracking;
+    bool bDirect;
+    bool bIndirect;
     bool bPrimary;
     bool bSecondary;
-    bool bStopTracking;
 
     int     angleBins;
     double  angleFrom;
@@ -43,7 +47,7 @@ public:
     int     energyBins;
     double  energyFrom;
     double  energyTo;
-    int     energyUnitsInHist;
+    int     energyUnits; // 0,1,2,3 -> meV, eV, keV, MeV;
 
     int     timeBins;
     double  timeFrom;
@@ -51,9 +55,11 @@ public:
 
     int     xbins;
     int     ybins;
-    int     shape;
     double  size1;
     double  size2;
+
+    std::vector<double> vTime;
+    double timeDelta = 1.0;
 };
 
 #endif // SensitiveDetector_h
