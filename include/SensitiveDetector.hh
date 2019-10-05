@@ -6,7 +6,8 @@
 class G4Step;
 class G4HCofThisEvent;
 
-namespace json11 {class Json;}
+//namespace json11 {class Json;}
+#include "json11.hh"
 
 class SensitiveDetector : public G4VSensitiveDetector
 {
@@ -26,6 +27,7 @@ public:
     virtual G4bool ProcessHits(G4Step* step, G4TouchableHistory* history);
 
     void readFromJson(const json11::Json & json);
+    void writeToJson(json11::Json::object & json);
 
     std::string Name;
     std::string ParticleName;
@@ -60,6 +62,16 @@ public:
 
     std::vector<double> vTime;
     double timeDelta = 1.0;
+
+    std::vector<double> vAngle;
+    double angleDelta = 1.0;
+
+    std::vector<double> vEnergy;
+    double energyDelta = 1.0;
+
+    std::vector<std::vector<double>> vSpatial; //[y][x]
+    double xDelta = 1.0;
+    double yDelta = 1.0;
 };
 
 #endif // SensitiveDetector_h

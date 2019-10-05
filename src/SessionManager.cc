@@ -67,6 +67,8 @@ void SessionManager::endSession()
     bError = false;
     ErrorMessage.clear();
 
+    storeMonitorsData();
+
     generateReceipt();
 }
 
@@ -283,6 +285,11 @@ void SessionManager::ReadConfig(const std::string &ConfigFileName)
     if (FileName_Output.empty())
         terminateSession("File name for deposition output was not provided");
 
+    //extracting name of the monitor output
+    FileName_Monitors = jo["File_Monitors"].string_value();
+    if (FileName_Monitors.empty())
+        terminateSession("File name for monitor data output was not provided");
+
     //read list of sensitive volumes - they will be linked to SensitiveDetector
     std::vector<json11::Json> arSV = jo["SensitiveVolumes"].array_items();
     if (arSV.empty())
@@ -460,5 +467,26 @@ void SessionManager::generateReceipt()
     outStream.open(FileName_Receipt);
     if (outStream.is_open())
         outStream << json_str << std::endl;
+    outStream.close();
+}
+
+void SessionManager::storeMonitorsData()
+{
+    json11::Json::array Arr;
+
+    for (MonitorSensitiveDetector * mon : Monitors)
+    {
+        json11::Json::object json;
+        if (mon) mon->writeToJson(json);
+        Arr.push_back(json);
+    }
+
+    std::ofstream outStream;
+    outStream.open(FileName_Monitors);
+    if (outStream.is_open())
+    {
+        std::string json_str = json11::Json(Arr).dump();
+        outStream << json_str << std::endl;
+    }
     outStream.close();
 }

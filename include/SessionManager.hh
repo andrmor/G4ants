@@ -87,10 +87,12 @@ public:
         void prepareOutputTracks();
         void executeAdditionalCommands();
         void generateReceipt();
+        void storeMonitorsData();
 
     private:
         std::string FileName_Input;
         std::string FileName_Output;
+        std::string FileName_Monitors;
         std::string FileName_Receipt;
         std::string FileName_Tracks;
         long Seed = 0;
