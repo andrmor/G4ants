@@ -12,6 +12,7 @@
 
 class G4ParticleDefinition;
 class G4StepPoint;
+class MonitorSensitiveDetector;
 
 struct ParticleRecord
 {
@@ -107,6 +108,8 @@ public:
         std::ofstream * outStreamTracks = 0;
         std::vector<ParticleRecord> GeneratedPrimaries;
         bool bGuiMode = false;
+
+        std::vector<MonitorSensitiveDetector*> Monitors; //can contain nullptr!
 
         int EventsDone = 0;
         int NumEventsToDo = 0;

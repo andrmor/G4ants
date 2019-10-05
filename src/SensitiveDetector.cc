@@ -42,3 +42,19 @@ G4bool SensitiveDetector::ProcessHits(G4Step* aStep, G4TouchableHistory*)
 
     return true;
 }
+
+#include "json11.hh"
+MonitorSensitiveDetector::MonitorSensitiveDetector(const G4String &name)
+    : G4VSensitiveDetector(name) {}
+
+MonitorSensitiveDetector::~MonitorSensitiveDetector() {}
+
+G4bool MonitorSensitiveDetector::ProcessHits(G4Step *step, G4TouchableHistory *history)
+{
+
+}
+
+void MonitorSensitiveDetector::readFromJson(const json11::Json &json)
+{
+
+}

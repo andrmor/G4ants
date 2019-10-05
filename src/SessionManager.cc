@@ -365,6 +365,24 @@ void SessionManager::ReadConfig(const std::string &ConfigFileName)
     else CollectHistory = NotCollecting;
 
     Precision = jo["Precision"].int_value();
+
+    std::vector<json11::Json> MonitorArray = jo["Monitors"].array_items();
+    if (!MonitorArray.empty())
+    {
+        std::cout << "Total monitors: " << MonitorArray.size() << std::endl;
+        for (size_t i=0; i<MonitorArray.size(); i++)
+        {
+            const json11::Json & el = MonitorArray[i];
+            if (!el.is_null())
+            {
+                std::string vol = el["Name"].string_value();
+                std::string particle = el["ParticleName"].string_value();
+                std::cout << "Vol: " << vol << " Particle: " << particle << std::endl;
+                //double step     = par[1].number_value();
+            }
+            else std::cout << "Null element" << std::endl;
+        }
+    }
 }
 
 void SessionManager::prepareInputStream()
