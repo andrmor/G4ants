@@ -22,6 +22,12 @@ void SteppingAction::UserSteppingAction(const G4Step *step)
     SessionManager & SM = SessionManager::getInstance();
     if (SM.CollectHistory == SessionManager::NotCollecting) return; // use stepping action only for recording of telemetry
 
+    if (SM.bStoppedOnMonitor) // bug fix for Geant4 - have to be removed if it is fixed!
+    {
+        SM.bStoppedOnMonitor = false;
+        return;
+    }
+
     const G4VProcess * proc = step->GetPostStepPoint()->GetProcessDefinedStep();
     if (proc && proc->GetProcessType() == fTransportation)
         if (step->GetPostStepPoint()->GetStepStatus() != fWorldBoundary && SM.CollectHistory == SessionManager::OnlyTracks)

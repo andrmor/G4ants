@@ -60,6 +60,35 @@ G4bool MonitorSensitiveDetector::ProcessHits(G4Step *step, G4TouchableHistory *)
         {
             std::cout << "Enter!" << (step->GetTrack()->GetParticleDefinition() == pParticleDefinition ? " GOOD one!" : " wrong!") <<std::endl;
 
+            const bool bIsPrimary = (step->GetTrack()->GetParentID() == 0);
+            if (  bIsPrimary && !bAcceptPrimary   ) return true;
+            if ( !bIsPrimary && !bAcceptSecondary ) return true;
+
+            /*
+            if (  p->bInteracted && !m->isAcceptingIndirect() ) return false;  // do not accept interacted
+            if ( !p->bInteracted && !m->isAcceptingDirect() )   return false;  // do not accept direct
+            */
+
+            //position info
+            G4StepPoint* p1 = step->GetPreStepPoint();
+            G4ThreeVector coord1 = p1->GetPosition();
+            const G4AffineTransform & transformation = p1->GetTouchable()->GetHistory()->GetTopTransform();
+            G4ThreeVector localPosition = transformation.TransformPoint(coord1);
+            std::cout << "Local position: " << localPosition[0] << " " << localPosition[1] << " " << localPosition[2] << " " << std::endl;
+            if ( localPosition[2] > 0  && !bAcceptUpper ) return true;
+            if ( localPosition[2] < 0  && !bAcceptLower ) return true;
+            const double x = localPosition[0] / mm;
+            const double y = localPosition[1] / mm;
+            int ix;
+            if (x < -size1) ix = 0;
+            else if (x > size1) ix = xbins + 1;
+            else ix = 1 + (x + size1) / xDelta;
+            int iy;
+            if (y < -size2) iy = 0;
+            else if (y > size2) iy = ybins + 1;
+            else iy = 1 + (y + size2) / yDelta;
+            vSpatial[iy][ix]++;
+
             // time info
             double time = step->GetPostStepPoint()->GetGlobalTime()/ns;
             int iTime = (time - timeFrom) / timeDelta;
@@ -76,30 +105,37 @@ G4bool MonitorSensitiveDetector::ProcessHits(G4Step *step, G4TouchableHistory *)
             else vTime[iTime+1]++;
             */
 
-            //position info
-            G4StepPoint* p1 = step->GetPreStepPoint();
-            G4ThreeVector coord1 = p1->GetPosition();
-            const G4AffineTransform transformation = p1->GetTouchable()->GetHistory()->GetTopTransform();
-            G4ThreeVector localPosition = transformation.TransformPoint(coord1);
-            std::cout << "Local position: " << localPosition[0] << " " << localPosition[1] << " " << localPosition[2] << " " << std::endl;
-            const double x = localPosition[0] / mm;
-            const double y = localPosition[1] / mm;
-            int ix;
-            if (x < -size1) ix = 0;
-            else if (x > size1) ix = xbins + 1;
-            else ix = 1 + (x + size1) / xDelta;
-            int iy;
-            if (y < -size2) iy = 0;
-            else if (y > size2) iy = ybins + 1;
-            else iy = 1 + (y + size2) / yDelta;
-            vSpatial[iy][ix]++;
-
             //energy
             double energy = step->GetPostStepPoint()->GetKineticEnergy() / keV;
             int iEnergy = (energy - energyFrom) / energyDelta;
             if (iEnergy < 0) vEnergy[0]++;
             else if (iEnergy >= energyBins) vEnergy[energyBins+1]++;
             else vEnergy[iEnergy+1]++;
+
+            //stop tracking?
+            if (bStopTracking)
+            {
+                step->GetTrack()->SetTrackStatus(fStopAndKill);
+
+                SessionManager & SM = SessionManager::getInstance();
+                if (SM.CollectHistory != SessionManager::NotCollecting)
+                {
+                    // ProcName X Y Z Time KinE DirectDepoE [secondaries]
+                    std::stringstream ss;
+                    ss << "MonitorStop";
+                    const G4ThreeVector & pos = step->GetPostStepPoint()->GetPosition();
+                    ss.precision(SM.Precision);
+                    ss << ' ' << pos[0] << ' ' << pos[1] << ' ' << pos[2] << ' ';
+                    ss << step->GetPostStepPoint()->GetGlobalTime()/ns << ' ';
+                    ss << step->GetPostStepPoint()->GetKineticEnergy()/keV << ' ';
+                    ss << '0';        //step->GetTotalEnergyDeposit()/keV;
+                    SM.sendLineToTracksOutput(ss);
+                }
+                // bug in Geant4.10.5.1? Tracking reports one more step - transportation from the monitor to the next volume
+                //the next is the fix:
+                SM.bStoppedOnMonitor = true;
+                return true;
+            }
         }
 
 //    G4VUserTrackInformation* GetUserInformation() const;
@@ -120,13 +156,13 @@ void MonitorSensitiveDetector::readFromJson(const json11::Json &json)
     ParticleName =  json["ParticleName"].string_value();
     std::cout << "Monitor created for volume " << Name << " and particle " << ParticleName << std::endl;
 
-    bLower =        json["bLower"].bool_value();
-    bUpper =        json["bUpper"].bool_value();
+    bAcceptLower =        json["bLower"].bool_value();
+    bAcceptUpper =        json["bUpper"].bool_value();
     bStopTracking = json["bStopTracking"].bool_value();
-    bDirect =       json["bDirect"].bool_value();
-    bIndirect =     json["bIndirect"].bool_value();
-    bPrimary =      json["bPrimary"].bool_value();
-    bSecondary =    json["bSecondary"].bool_value();
+    bAcceptDirect =       json["bDirect"].bool_value();
+    bAcceptIndirect =     json["bIndirect"].bool_value();
+    bAcceptPrimary =      json["bPrimary"].bool_value();
+    bAcceptSecondary =    json["bSecondary"].bool_value();
 
     angleBins =     json["angleBins"].int_value();
     angleFrom =     json["angleFrom"].number_value();

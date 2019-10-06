@@ -34,13 +34,13 @@ public:
 
     G4ParticleDefinition * pParticleDefinition = nullptr;
 
-    bool bLower;
-    bool bUpper;
+    bool bAcceptLower;
+    bool bAcceptUpper;
+    bool bAcceptDirect;
+    bool bAcceptIndirect;
+    bool bAcceptPrimary;
+    bool bAcceptSecondary;
     bool bStopTracking;
-    bool bDirect;
-    bool bIndirect;
-    bool bPrimary;
-    bool bSecondary;
 
     int     angleBins;
     double  angleFrom;
