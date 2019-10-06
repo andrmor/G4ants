@@ -22,7 +22,7 @@ void SteppingAction::UserSteppingAction(const G4Step *step)
     SessionManager & SM = SessionManager::getInstance();
     if (SM.CollectHistory == SessionManager::NotCollecting) return; // use stepping action only for recording of telemetry
 
-    if (SM.bStoppedOnMonitor) // bug fix for Geant4 - have to be removed if it is fixed!
+    if (SM.bStoppedOnMonitor) // bug fix for Geant4 - have to be removed when it is fixed! Currently track has one more step after kill
     {
         SM.bStoppedOnMonitor = false;
         return;

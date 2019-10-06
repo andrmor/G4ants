@@ -71,10 +71,10 @@ G4bool MonitorSensitiveDetector::ProcessHits(G4Step *step, G4TouchableHistory *)
 
             //position info
             G4StepPoint* p1 = step->GetPreStepPoint();
-            G4ThreeVector coord1 = p1->GetPosition();
+            const G4ThreeVector & coord1 = p1->GetPosition();
             const G4AffineTransform & transformation = p1->GetTouchable()->GetHistory()->GetTopTransform();
-            G4ThreeVector localPosition = transformation.TransformPoint(coord1);
-            std::cout << "Local position: " << localPosition[0] << " " << localPosition[1] << " " << localPosition[2] << " " << std::endl;
+            const G4ThreeVector localPosition = transformation.TransformPoint(coord1);
+            //std::cout << "Local position: " << localPosition[0] << " " << localPosition[1] << " " << localPosition[2] << " " << std::endl;
             if ( localPosition[2] > 0  && !bAcceptUpper ) return true;
             if ( localPosition[2] < 0  && !bAcceptLower ) return true;
             const double x = localPosition[0] / mm;
@@ -97,13 +97,16 @@ G4bool MonitorSensitiveDetector::ProcessHits(G4Step *step, G4TouchableHistory *)
             else vTime[iTime+1]++;
 
             // angle info
-            /*
-            double time = step->GetPostStepPoint()->GetGlobalTime()/ns;
-            int iTime = (time - timeFrom) / timeDelta;
-            if (iTime < 0) vTime[0]++;
-            else if (iTime >= timeBins) vTime[timeBins+1]++;
-            else vTime[iTime+1]++;
-            */
+            G4ThreeVector vec = step->GetTrack()->GetMomentumDirection();
+            //std::cout << "Global dir: "<< vec[0] << ' ' << vec[1] << ' '<< vec[2] << std::endl;
+            transformation.ApplyAxisTransform(vec);
+            double angle = 180.0/3.14159265358979323846*acos(vec[2]);
+            if (angle > 90.0) angle = 180.0 - angle;
+            std::cout << "Local vector: " << vec[0] << " " << vec[1] << " " << vec[2] << " "<< angle << std::endl;
+            int iAngle = (angle - angleFrom) / angleDelta;
+            if (iAngle < 0) vAngle[0]++;
+            else if (iAngle >= angleBins) vAngle[angleBins+1]++;
+            else vAngle[iAngle+1]++;
 
             //energy
             double energy = step->GetPostStepPoint()->GetKineticEnergy() / keV;
