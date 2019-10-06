@@ -79,6 +79,8 @@ public:
 
         int Precision    = 6;
 
+        bool bHaveActiveMonitors = false;
+
         bool bStoppedOnMonitor = false; // bug fix for Geant4? used in (Monitor)SensitiveDetector and SteppingAction
 
     private:

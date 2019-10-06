@@ -287,8 +287,8 @@ void SessionManager::ReadConfig(const std::string &ConfigFileName)
 
     //extracting name of the monitor output
     FileName_Monitors = jo["File_Monitors"].string_value();
-    if (FileName_Monitors.empty())
-        terminateSession("File name for monitor data output was not provided");
+    //if (FileName_Monitors.empty())
+    //    terminateSession("File name for monitor data output was not provided");
 
     //read list of sensitive volumes - they will be linked to SensitiveDetector
     std::vector<json11::Json> arSV = jo["SensitiveVolumes"].array_items();
@@ -383,28 +383,32 @@ void SessionManager::ReadConfig(const std::string &ConfigFileName)
 
     Precision = jo["Precision"].int_value();
 
-    std::vector<json11::Json> MonitorArray = jo["Monitors"].array_items();
-    if (!MonitorArray.empty())
+    if (!FileName_Monitors.empty()) //compatibility while it corresponding ANTS version is not on master
     {
-        std::cout << "Monitor array size in config file: " << MonitorArray.size() << std::endl;
-        int numActiveMonitors = 0;
-        for (size_t i=0; i<MonitorArray.size(); i++)
+        std::vector<json11::Json> MonitorArray = jo["Monitors"].array_items();
+        if (!MonitorArray.empty())
         {
-            const json11::Json & mjs = MonitorArray[i];
-            MonitorSensitiveDetector * mobj = nullptr;
-
-            if (!mjs.is_null())
+            //std::cout << "Monitor array size in config file: " << MonitorArray.size() << std::endl;
+            int numActiveMonitors = 0;
+            for (size_t i=0; i<MonitorArray.size(); i++)
             {
-                numActiveMonitors++;
-                std::string Name = mjs["Name"].string_value();
-                mobj = new MonitorSensitiveDetector(Name);
-                mobj->readFromJson(mjs);
-            }
-            else std::cout << "Null monitor element" << std::endl;
+                const json11::Json & mjs = MonitorArray[i];
+                MonitorSensitiveDetector * mobj = nullptr;
 
-            Monitors.push_back(mobj);
+                if (!mjs.is_null())
+                {
+                    numActiveMonitors++;
+                    std::string Name = mjs["Name"].string_value();
+                    mobj = new MonitorSensitiveDetector(Name);
+                    mobj->readFromJson(mjs);
+                }
+                else std::cout << "Null monitor element" << std::endl;
+
+                Monitors.push_back(mobj);
+            }
+            std::cout << "Not-null monitors: " << numActiveMonitors << std::endl;
+            bHaveActiveMonitors = (numActiveMonitors > 0);
         }
-        std::cout << "Not-null monitors: " << numActiveMonitors << std::endl;
     }
 }
 

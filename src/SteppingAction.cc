@@ -9,6 +9,7 @@
 #include "G4SystemOfUnits.hh"
 //#include "G4EventManager.hh"
 //#include "G4StackManager.hh"
+#include "G4VUserTrackInformation.hh"
 
 #include <iostream>
 #include <iomanip>
@@ -20,6 +21,14 @@ SteppingAction::~SteppingAction(){}
 void SteppingAction::UserSteppingAction(const G4Step *step)
 {
     SessionManager & SM = SessionManager::getInstance();
+
+    if (SM.bHaveActiveMonitors)
+    {
+        const G4VProcess * proc = step->GetPostStepPoint()->GetProcessDefinedStep();
+        if (proc && proc->GetProcessType() != fTransportation)
+            step->GetTrack()->SetUserInformation(new G4VUserTrackInformation()); //non-transport: particle is not "direct"
+    }
+
     if (SM.CollectHistory == SessionManager::NotCollecting) return; // use stepping action only for recording of telemetry
 
     if (SM.bStoppedOnMonitor) // bug fix for Geant4 - have to be removed when it is fixed! Currently track has one more step after kill

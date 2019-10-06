@@ -64,10 +64,9 @@ G4bool MonitorSensitiveDetector::ProcessHits(G4Step *step, G4TouchableHistory *)
             if (  bIsPrimary && !bAcceptPrimary   ) return true;
             if ( !bIsPrimary && !bAcceptSecondary ) return true;
 
-            /*
-            if (  p->bInteracted && !m->isAcceptingIndirect() ) return false;  // do not accept interacted
-            if ( !p->bInteracted && !m->isAcceptingDirect() )   return false;  // do not accept direct
-            */
+            const bool bIsDirect = !step->GetTrack()->GetUserInformation();
+            if (  bIsDirect && !bAcceptDirect)   return true;
+            if ( !bIsDirect && !bAcceptIndirect) return true;
 
             //position info
             G4StepPoint* p1 = step->GetPreStepPoint();
@@ -155,26 +154,26 @@ G4bool MonitorSensitiveDetector::ProcessHits(G4Step *step, G4TouchableHistory *)
 
 void MonitorSensitiveDetector::readFromJson(const json11::Json &json)
 {
-    Name =          json["Name"].string_value();
-    ParticleName =  json["ParticleName"].string_value();
-    std::cout << "Monitor created for volume " << Name << " and particle " << ParticleName << std::endl;
+    Name =              json["Name"].string_value();
+    ParticleName =      json["ParticleName"].string_value();
+    //std::cout << "Monitor created for volume " << Name << " and particle " << ParticleName << std::endl;
 
-    bAcceptLower =        json["bLower"].bool_value();
-    bAcceptUpper =        json["bUpper"].bool_value();
-    bStopTracking = json["bStopTracking"].bool_value();
-    bAcceptDirect =       json["bDirect"].bool_value();
-    bAcceptIndirect =     json["bIndirect"].bool_value();
-    bAcceptPrimary =      json["bPrimary"].bool_value();
-    bAcceptSecondary =    json["bSecondary"].bool_value();
+    bAcceptLower =      json["bLower"].bool_value();
+    bAcceptUpper =      json["bUpper"].bool_value();
+    bStopTracking =     json["bStopTracking"].bool_value();
+    bAcceptDirect =     json["bDirect"].bool_value();
+    bAcceptIndirect =   json["bIndirect"].bool_value();
+    bAcceptPrimary =    json["bPrimary"].bool_value();
+    bAcceptSecondary =  json["bSecondary"].bool_value();
 
-    angleBins =     json["angleBins"].int_value();
-    angleFrom =     json["angleFrom"].number_value();
-    angleTo =       json["angleTo"].number_value();
+    angleBins =         json["angleBins"].int_value();
+    angleFrom =         json["angleFrom"].number_value();
+    angleTo =           json["angleTo"].number_value();
 
-    energyBins =    json["energyBins"].int_value();
-    energyFrom =    json["energyFrom"].number_value();
-    energyTo =      json["energyTo"].number_value();
-    energyUnits =   json["energyUnitsInHist"].int_value(); // 0,1,2,3 -> meV, eV, keV, MeV;
+    energyBins =        json["energyBins"].int_value();
+    energyFrom =        json["energyFrom"].number_value();
+    energyTo =          json["energyTo"].number_value();
+    energyUnits =       json["energyUnitsInHist"].int_value(); // 0,1,2,3 -> meV, eV, keV, MeV;
     double multipler = 1.0;
     switch (energyUnits)
     {
@@ -186,17 +185,17 @@ void MonitorSensitiveDetector::readFromJson(const json11::Json &json)
     energyFrom *= multipler;
     energyTo   *= multipler;
 
-    timeBins =      json["timeBins"].int_value();
-    timeFrom =      json["timeFrom"].number_value();
-    timeTo =        json["timeTo"].number_value();
+    timeBins =          json["timeBins"].int_value();
+    timeFrom =          json["timeFrom"].number_value();
+    timeTo =            json["timeTo"].number_value();
 
-    xbins =        json["xbins"].int_value();
-    ybins =        json["ybins"].int_value();
-    size1 =        json["size1"].number_value();
-    int shape =    json["shape"].number_value();
-    if (shape == 0) //rectangular
-        size2 =   json["size2"].number_value();
-    else
+    xbins =             json["xbins"].int_value();
+    ybins =             json["ybins"].int_value();
+    size1 =             json["size1"].number_value();
+    int shape =         json["shape"].number_value();
+    if (shape == 0)         //rectangular
+        size2 =         json["size2"].number_value();
+    else                    //round
         size2 = size1;
 
     // creating "histograms" to store statistics
