@@ -23,11 +23,12 @@ void SteppingAction::UserSteppingAction(const G4Step *step)
     SessionManager & SM = SessionManager::getInstance();
 
     if (SM.bHaveActiveMonitors)
-    {
-        const G4VProcess * proc = step->GetPostStepPoint()->GetProcessDefinedStep();
-        if (proc && proc->GetProcessType() != fTransportation)
-            step->GetTrack()->SetUserInformation(new G4VUserTrackInformation()); //non-transport: particle is not "direct"
-    }
+        if (!step->GetTrack()->GetUserInformation()) //if exists, already marked as "indirect"
+        {
+            const G4VProcess * proc = step->GetPostStepPoint()->GetProcessDefinedStep();
+            if (proc && proc->GetProcessType() != fTransportation) // on first non-transportation, the particle is marked as "indirect"
+                step->GetTrack()->SetUserInformation(new G4VUserTrackInformation()); // owned by track!
+        }
 
     if (SM.CollectHistory == SessionManager::NotCollecting) return; // use stepping action only for recording of telemetry
 
