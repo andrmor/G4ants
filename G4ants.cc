@@ -65,7 +65,6 @@ int main(int argc, char** argv)
 
     physicsList->RegisterPhysics(new G4StepLimiterPhysics());
     runManager->SetUserInitialization(physicsList);
-
     runManager->SetUserInitialization(new ActionInitialization());
 
     G4UImanager* UImanager = G4UImanager::GetUIpointer();

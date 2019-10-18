@@ -244,7 +244,7 @@ void SessionManager::prepareParticleCollection()
 void SessionManager::prepareMonitors()
 {
     for (MonitorSensitiveDetector * m : Monitors)
-        m->pParticleDefinition = G4ParticleTable::GetParticleTable()->FindParticle(m->ParticleName);
+        if (m) m->pParticleDefinition = G4ParticleTable::GetParticleTable()->FindParticle(m->ParticleName);
 }
 
 void SessionManager::ReadConfig(const std::string &ConfigFileName)
@@ -397,17 +397,19 @@ void SessionManager::ReadConfig(const std::string &ConfigFileName)
 
                 if (!mjs.is_null())
                 {
-                    numActiveMonitors++;
                     std::string Name = mjs["Name"].string_value();
-                    mobj = new MonitorSensitiveDetector(Name);
-                    mobj->readFromJson(mjs);
+                    if (!Name.empty())
+                    {
+                        numActiveMonitors++;
+                        mobj = new MonitorSensitiveDetector(Name);
+                        mobj->readFromJson(mjs);
+                    }
+                    else std::cout << "Null monitor element" << std::endl;
                 }
-                else std::cout << "Null monitor element" << std::endl;
-
                 Monitors.push_back(mobj);
             }
-            std::cout << "Not-null monitors: " << numActiveMonitors << std::endl;
             bHaveActiveMonitors = (numActiveMonitors > 0);
+            std::cout << "Not-empty monitors: " << numActiveMonitors << "  Have active? " << bHaveActiveMonitors << std::endl;
         }
     }
 }

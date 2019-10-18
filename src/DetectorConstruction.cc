@@ -57,7 +57,7 @@ void DetectorConstruction::ConstructSDandField()
 
     // ---- Monitors ----
     for (MonitorSensitiveDetector * mon : SM.getMonitors())
-        SetSensitiveDetector(mon->Name, mon);
+        if (mon) SetSensitiveDetector(mon->Name, mon);
 }
 
 bool DetectorConstruction::isAccordingTo(const std::string &name, const std::string & wildcard) const
