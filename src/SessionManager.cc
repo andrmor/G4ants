@@ -244,7 +244,11 @@ void SessionManager::prepareParticleCollection()
 void SessionManager::prepareMonitors()
 {
     for (MonitorSensitiveDetector * m : Monitors)
-        if (m) m->pParticleDefinition = G4ParticleTable::GetParticleTable()->FindParticle(m->ParticleName);
+        if (m)
+        {
+            if (!m->ParticleName.empty())
+                m->pParticleDefinition = G4ParticleTable::GetParticleTable()->FindParticle(m->ParticleName);
+        }
 }
 
 void SessionManager::ReadConfig(const std::string &ConfigFileName)

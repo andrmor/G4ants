@@ -62,7 +62,8 @@ G4bool MonitorSensitiveDetector::ProcessHits(G4Step *step, G4TouchableHistory *)
     if (proc && proc->GetProcessType() == fTransportation)
         if (step->GetPostStepPoint()->GetStepStatus() == fGeomBoundary)
         {
-            std::cout << "Enter!" << (step->GetTrack()->GetParticleDefinition() == pParticleDefinition ? " GOOD one!" : " wrong!") <<std::endl;
+            if ( pParticleDefinition && (step->GetTrack()->GetParticleDefinition() != pParticleDefinition) ) // for "all particles" pParticleDefinition == nullptr
+                return true;
 
             const bool bIsPrimary = (step->GetTrack()->GetParentID() == 0);
             if (  bIsPrimary && !bAcceptPrimary   ) return true;
@@ -82,28 +83,10 @@ G4bool MonitorSensitiveDetector::ProcessHits(G4Step *step, G4TouchableHistory *)
             if ( localPosition[2] < 0  && !bAcceptLower ) return true;
             const double x = localPosition[0] / mm;
             const double y = localPosition[1] / mm;
-
-            /*
-            int ix;
-            if (x < -size1) ix = 0;
-            else if (x > size1) ix = xbins + 1;
-            else ix = 1 + (x + size1) / xDelta;
-            int iy;
-            if (y < -size2) iy = 0;
-            else if (y > size2) iy = ybins + 1;
-            else iy = 1 + (y + size2) / yDelta;
-            vSpatial[iy][ix]++;
-            */
             hPosition->Fill(x, y);
 
             // time info
             double time = step->GetPostStepPoint()->GetGlobalTime()/ns;
-            /*
-            int iTime = (time - timeFrom) / timeDelta;
-            if (iTime < 0) vTime[0]++;
-            else if (iTime >= timeBins) vTime[timeBins+1]++;
-            else vTime[iTime+1]++;
-            */
             hTime->Fill(time);
 
             // angle info
@@ -112,23 +95,11 @@ G4bool MonitorSensitiveDetector::ProcessHits(G4Step *step, G4TouchableHistory *)
             transformation.ApplyAxisTransform(vec);
             double angle = 180.0/3.14159265358979323846*acos(vec[2]);
             if (angle > 90.0) angle = 180.0 - angle;
-            std::cout << "Local vector: " << vec[0] << " " << vec[1] << " " << vec[2] << " "<< angle << std::endl;
-            /*
-            int iAngle = (angle - angleFrom) / angleDelta;
-            if (iAngle < 0) vAngle[0]++;
-            else if (iAngle >= angleBins) vAngle[angleBins+1]++;
-            else vAngle[iAngle+1]++;
-            */
+            //std::cout << "Local vector: " << vec[0] << " " << vec[1] << " " << vec[2] << " "<< angle << std::endl;
             hAngle->Fill(angle);
 
             //energy
             double energy = step->GetPostStepPoint()->GetKineticEnergy() / keV;
-            /*
-            int iEnergy = (energy - energyFrom) / energyDelta;
-            if (iEnergy < 0) vEnergy[0]++;
-            else if (iEnergy >= energyBins) vEnergy[energyBins+1]++;
-            else vEnergy[iEnergy+1]++;
-            */
             hEnergy->Fill(energy);
 
             //stop tracking?
@@ -156,15 +127,6 @@ G4bool MonitorSensitiveDetector::ProcessHits(G4Step *step, G4TouchableHistory *)
                 return true;
             }
         }
-
-//    G4VUserTrackInformation* GetUserInformation() const;
-//    void SetUserInformation(G4VUserTrackInformation* aValue) const;
-
-
-//    const int iPart = SM.findParticle( aStep->GetTrack()->GetParticleDefinition()->GetParticleName() );
-//    const G4ThreeVector& pos = aStep->GetPostStepPoint()->GetPosition();
-
-//    ss << a
 
     return true;
 }
@@ -286,15 +248,6 @@ void MonitorSensitiveDetector::writeToJson(json11::Json::object &json)
 
     json11::Json::object jsSpatial;
     {
-        double xfrom, xto, yfrom, yto;
-        hPosition->getLimits(xfrom, xto, yfrom, yto);
-        jsSpatial["xfrom"] = xfrom;
-        jsSpatial["xto"]   = xto;
-        jsSpatial["yfrom"] = yfrom;
-        jsSpatial["yto"]   = yto;
-        //jsSpatial["xbins"] = xbins;
-        //jsSpatial["ybins"] = ybins;
-
         std::vector<std::vector<double>> vSpatial = hPosition->getContent(); //[y][x]
         json11::Json::array ar;
         for (auto & row : vSpatial)
@@ -305,6 +258,14 @@ void MonitorSensitiveDetector::writeToJson(json11::Json::object &json)
             ar.push_back(el);
         }
         jsSpatial["data"] = ar;
+
+        //getContent can change from/to!
+        double xfrom, xto, yfrom, yto;
+        hPosition->getLimits(xfrom, xto, yfrom, yto);
+        jsSpatial["xfrom"] = xfrom;
+        jsSpatial["xto"]   = xto;
+        jsSpatial["yfrom"] = yfrom;
+        jsSpatial["yto"]   = yto;
 
         const std::vector<double> vec = hPosition->getStat(); // [0] - sumVals, [1] - sumVals2, [2] - sumValX, [3] - sumValX2, [4] - sumValY, [5] - sumValY2, [6] - # entries
         json11::Json::array sjs;
@@ -317,16 +278,16 @@ void MonitorSensitiveDetector::writeToJson(json11::Json::object &json)
 
 void MonitorSensitiveDetector::writeHist1D(AHistogram1D *hist, json11::Json::object &json) const
 {
-    double from, to;
-    hist->getLimits(from, to);
-    json["from"] = from;
-    json["to"] =   to;
-    //json["bins"] = hist->getBins();
-
     json11::Json::array ar;
     for (const double & d : hist->getContent())
         ar.push_back(d);
     json["data"] = ar;
+
+    //getContent can change from/to!
+    double from, to;
+    hist->getLimits(from, to);
+    json["from"] = from;
+    json["to"] =   to;
 
     const std::vector<double> vec = hist->getStat(); //[0] - sumVals, [1] - sumVals2, [2] - sumValX, [3] - sumValX2, [4] - # entries
     json11::Json::array sjs;
