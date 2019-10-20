@@ -244,11 +244,10 @@ void SessionManager::prepareParticleCollection()
 void SessionManager::prepareMonitors()
 {
     for (MonitorSensitiveDetector * m : Monitors)
-        if (m)
-        {
-            if (!m->ParticleName.empty())
-                m->pParticleDefinition = G4ParticleTable::GetParticleTable()->FindParticle(m->ParticleName);
-        }
+    {
+        if (!m->ParticleName.empty())
+            m->pParticleDefinition = G4ParticleTable::GetParticleTable()->FindParticle(m->ParticleName);
+    }
 }
 
 void SessionManager::ReadConfig(const std::string &ConfigFileName)
@@ -387,34 +386,22 @@ void SessionManager::ReadConfig(const std::string &ConfigFileName)
 
     Precision = jo["Precision"].int_value();
 
-    if (!FileName_Monitors.empty()) //compatibility while it corresponding ANTS version is not on master
+    if (!FileName_Monitors.empty()) //compatibility while the corresponding ANTS version is not on master
     {
         std::vector<json11::Json> MonitorArray = jo["Monitors"].array_items();
-        if (!MonitorArray.empty())
+        //std::cout << "Monitor array size in config file: " << MonitorArray.size() << std::endl;
+        int bDirectIndirectSensitivity = false;
+        bHaveActiveMonitors = MonitorArray.size();
+        for (size_t i=0; i<MonitorArray.size(); i++)
         {
-            //std::cout << "Monitor array size in config file: " << MonitorArray.size() << std::endl;
-            int numActiveMonitors = 0;
-            for (size_t i=0; i<MonitorArray.size(); i++)
-            {
-                const json11::Json & mjs = MonitorArray[i];
-                MonitorSensitiveDetector * mobj = nullptr;
-
-                if (!mjs.is_null())
-                {
-                    std::string Name = mjs["Name"].string_value();
-                    if (!Name.empty())
-                    {
-                        numActiveMonitors++;
-                        mobj = new MonitorSensitiveDetector(Name);
-                        mobj->readFromJson(mjs);
-                    }
-                    else std::cout << "Null monitor element" << std::endl;
-                }
-                Monitors.push_back(mobj);
-            }
-            bHaveActiveMonitors = (numActiveMonitors > 0);
-            std::cout << "Not-empty monitors: " << numActiveMonitors << "  Have active? " << bHaveActiveMonitors << std::endl;
+            const json11::Json & mjs = MonitorArray[i];
+            std::string Name = mjs["Name"].string_value();
+            MonitorSensitiveDetector * mobj = new MonitorSensitiveDetector(Name);
+            mobj->readFromJson(mjs);
+            Monitors.push_back(mobj);
+            if (!mobj->bAcceptDirect || !mobj->bAcceptIndirect) bDirectIndirectSensitivity = true;
         }
+        std::cout << "Monitors dir/indirect sensitivity: " << bDirectIndirectSensitivity << std::endl;
     }
 }
 
@@ -487,7 +474,7 @@ void SessionManager::storeMonitorsData()
     for (MonitorSensitiveDetector * mon : Monitors)
     {
         json11::Json::object json;
-        if (mon) mon->writeToJson(json);
+        mon->writeToJson(json);
         Arr.push_back(json);
     }
 

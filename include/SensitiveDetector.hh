@@ -32,6 +32,7 @@ public:
 
     std::string Name;
     std::string ParticleName;
+    int         MonitorIndex;
 
     G4ParticleDefinition * pParticleDefinition = nullptr;
 

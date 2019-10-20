@@ -135,6 +135,8 @@ void MonitorSensitiveDetector::readFromJson(const json11::Json &json)
 {
     Name =              json["Name"].string_value();
     ParticleName =      json["ParticleName"].string_value();
+    MonitorIndex =      json["MonitorIndex"].int_value();
+
     //std::cout << "Monitor created for volume " << Name << " and particle " << ParticleName << std::endl;
 
     bAcceptLower =      json["bLower"].bool_value();
@@ -201,49 +203,18 @@ void MonitorSensitiveDetector::readFromJson(const json11::Json &json)
 
 void MonitorSensitiveDetector::writeToJson(json11::Json::object &json)
 {
+    json["MonitorIndex"] = MonitorIndex;
+
     json11::Json::object jsTime;
-    {
-        writeHist1D(hTime, jsTime);
-        /*
-        jsTime["from"] = timeFrom;
-        jsTime["to"] =   timeTo;
-        jsTime["bins"] = timeBins;
-        json11::Json::array ar;
-        for (const double & d : hTime->getContent())
-            ar.push_back(d);
-        jsTime["data"] = ar;
-        */
-    }
+    writeHist1D(hTime, jsTime);
     json["Time"] = jsTime;
 
     json11::Json::object jsAngle;
-    {
-        writeHist1D(hAngle, jsAngle);
-        /*
-        jsAngle["from"] = angleFrom;
-        jsAngle["to"] =   angleTo;
-        jsAngle["bins"] = angleBins;
-        json11::Json::array ar;
-        for (const double & d : hAngle->getContent())
-            ar.push_back(d);
-        jsAngle["data"] = ar;
-        */
-    }
+    writeHist1D(hAngle, jsAngle);
     json["Angle"] = jsAngle;
 
     json11::Json::object jsEnergy;
-    {
-        writeHist1D(hEnergy, jsEnergy);
-        /*
-        jsEnergy["from"] = energyFrom;
-        jsEnergy["to"] =   energyTo;
-        jsEnergy["bins"] = energyBins;
-        json11::Json::array ar;
-        for (const double & d : hEnergy->getContent())
-            ar.push_back(d);
-        jsEnergy["data"] = ar;
-        */
-    }
+    writeHist1D(hEnergy, jsEnergy);
     json["Energy"] = jsEnergy;
 
     json11::Json::object jsSpatial;
