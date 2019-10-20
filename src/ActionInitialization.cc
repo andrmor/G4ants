@@ -19,12 +19,12 @@ void ActionInitialization::Build() const
     SetUserAction(new RunAction);
 
     //SetUserAction(new EventAction);
+    //SetUserAction(new StackingAction);
 
     SessionManager & SM = SessionManager::getInstance();
-    if (SM.CollectHistory != SessionManager::NotCollecting)
-    {
-        SetUserAction(new TrackingAction);
+    if (SM.CollectHistory != SessionManager::NotCollecting || SM.bMonitorsRequireSteppingAction)
         SetUserAction(new SteppingAction);
-        //SetUserAction(new StackingAction);
-    }
+
+    if (SM.CollectHistory != SessionManager::NotCollecting)
+        SetUserAction(new TrackingAction);
 }

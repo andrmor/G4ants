@@ -31,7 +31,7 @@ private:
     double sumValX2 = 0;
 
     bool   bFixedRange = true;
-    size_t bufferSize = 1000;
+    size_t bufferSize = 10000;
 
     std::vector<double> data; // [0] - underflow, [bins+1] - overflow
     std::vector<std::pair<double, double>> buffer;
@@ -74,7 +74,7 @@ private:
     double sumValY2 = 0;
 
     bool   bFixedRange = true;
-    size_t bufferSize = 1000;
+    size_t bufferSize = 10000;
 
     std::vector< std::vector<double> > data; // [y][x]; for x: [0] - underflow, [bins+1] - overflow
     std::vector<std::tuple<double, double, double>> buffer;

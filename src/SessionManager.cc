@@ -389,9 +389,6 @@ void SessionManager::ReadConfig(const std::string &ConfigFileName)
     if (!FileName_Monitors.empty()) //compatibility while the corresponding ANTS version is not on master
     {
         std::vector<json11::Json> MonitorArray = jo["Monitors"].array_items();
-        //std::cout << "Monitor array size in config file: " << MonitorArray.size() << std::endl;
-        int bDirectIndirectSensitivity = false;
-        bHaveActiveMonitors = MonitorArray.size();
         for (size_t i=0; i<MonitorArray.size(); i++)
         {
             const json11::Json & mjs = MonitorArray[i];
@@ -399,9 +396,9 @@ void SessionManager::ReadConfig(const std::string &ConfigFileName)
             MonitorSensitiveDetector * mobj = new MonitorSensitiveDetector(Name);
             mobj->readFromJson(mjs);
             Monitors.push_back(mobj);
-            if (!mobj->bAcceptDirect || !mobj->bAcceptIndirect) bDirectIndirectSensitivity = true;
+            if (!mobj->bAcceptDirect || !mobj->bAcceptIndirect) bMonitorsRequireSteppingAction = true;
         }
-        std::cout << "Monitors dir/indirect sensitivity: " << bDirectIndirectSensitivity << std::endl;
+        std::cout << "Monitors require stepping action: " << bMonitorsRequireSteppingAction << std::endl;
     }
 }
 

@@ -22,7 +22,7 @@ void SteppingAction::UserSteppingAction(const G4Step *step)
 {
     SessionManager & SM = SessionManager::getInstance();
 
-    if (SM.bHaveActiveMonitors)
+    if (SM.bMonitorsRequireSteppingAction)
         if (!step->GetTrack()->GetUserInformation()) //if exists, already marked as "indirect"
         {
             const G4VProcess * proc = step->GetPostStepPoint()->GetProcessDefinedStep();
@@ -30,7 +30,7 @@ void SteppingAction::UserSteppingAction(const G4Step *step)
                 step->GetTrack()->SetUserInformation(new G4VUserTrackInformation()); // owned by track!
         }
 
-    if (SM.CollectHistory == SessionManager::NotCollecting) return; // use stepping action only for recording of telemetry
+    if (SM.CollectHistory == SessionManager::NotCollecting) return; // the rest is only to record telemetry!
 
     if (SM.bStoppedOnMonitor) // bug fix for Geant4 - have to be removed when it is fixed! Currently track has one more step after kill
     {
