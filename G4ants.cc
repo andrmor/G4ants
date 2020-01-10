@@ -8,6 +8,7 @@
 #include "G4VisExecutive.hh"
 #include "G4UIExecutive.hh"
 #include "G4GDMLParser.hh"
+#include "G4PhysListFactory.hh"
 
 #include "QGSP_BIC.hh"
 #include "QGSP_BIC_HP.hh"
@@ -59,7 +60,12 @@ int main(int argc, char** argv)
     else if (pl == "FTFP_BERT_TRV")  physicsList = new FTFP_BERT_TRV();
     else if (pl == "FTFP_INCLXX")    physicsList = new FTFP_INCLXX();
     else if (pl == "FTFP_INCLXX_HP") physicsList = new FTFP_INCLXX_HP();
-
+    else
+    {
+        G4PhysListFactory factory;
+        if (factory.IsReferencePhysList(pl))
+            physicsList = factory.GetReferencePhysList(pl);
+    }
     if (!physicsList)
         SM.terminateSession("Unknown reference physics list");
 
