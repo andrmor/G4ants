@@ -237,18 +237,163 @@ void SessionManager::saveDepoRecord(int iPart, int iMat, double edep, double *po
     }
 }
 
+/*
 void SessionManager::sendLineToTracksOutput(const std::string &text)
 {
     if (!outStreamTracks) return;
 
     *outStreamTracks << text.data() << std::endl;
 }
-
 void SessionManager::sendLineToTracksOutput(const std::stringstream &text)
 {
     if (!outStreamTracks) return;
 
     *outStreamTracks << text.rdbuf() << std::endl;
+}
+*/
+
+void SessionManager::saveTrackEventId()
+{
+    if (!outStreamTracks) return;
+
+    if (bBinaryOutput)
+    {
+        *outStreamTracks << char(0xEE);
+
+        const int iEvent = std::stoi( EventId.substr(1) );  // kill leading '#'
+        outStreamTracks->write((char*)&iEvent, sizeof(int));
+    }
+    else
+    {
+        *outStreamTracks << EventId.data() << std::endl;
+    }
+}
+
+void SessionManager::saveTrackStart(int trackID, int parentTrackID,
+                                    const G4String & particleName,
+                                    const G4ThreeVector & pos, double time, double kinE,
+                                    int iMat, const std::string &volName, int volIndex)
+{
+    if (!outStreamTracks) return;
+
+    // format:
+    // > TrackID ParentTrackID Particle X Y Z Time E iMat VolName VolIndex
+
+    if (bBinaryOutput)
+    {
+        *outStreamDeposition << char(0xFF);
+
+        outStreamDeposition->write((char*)&trackID,       sizeof(int));
+        outStreamDeposition->write((char*)&parentTrackID, sizeof(int));
+
+        *outStreamDeposition << particleName << char(0x00);
+
+        double posArr[3];
+        posArr[0] = pos.x();
+        posArr[1] = pos.y();
+        posArr[2] = pos.z();
+        outStreamDeposition->write((char*)posArr,  3*sizeof(double));
+        outStreamDeposition->write((char*)&time,     sizeof(double));
+        outStreamDeposition->write((char*)&kinE,     sizeof(double));
+
+        outStreamDeposition->write((char*)&iMat,     sizeof(int));
+        *outStreamDeposition << volName << char(0x00);
+        outStreamDeposition->write((char*)&volIndex, sizeof(int));
+    }
+    else
+    {
+        std::stringstream ss;
+        ss.precision(Precision);
+
+        ss << '>';
+        ss << trackID << ' ';
+        ss << parentTrackID << ' ';
+        ss << particleName << ' ';
+        ss << pos[0] << ' ' << pos[1] << ' ' << pos[2] << ' ';
+        ss << time << ' ';
+        ss << kinE << ' ';
+        ss << iMat << ' ';
+        ss << volName << ' ';
+        ss << volIndex;
+
+        *outStreamTracks << ss.rdbuf() << std::endl;
+    }
+
+}
+
+void SessionManager::saveTrackRecord(const std::string & procName,
+                                     const G4ThreeVector & pos, double time,
+                                     double kinE, double depoE,
+                                     const std::vector<int> * secondaries,
+                                     int iMatTo, const std::string & volNameTo, int volIndexTo)
+{
+    if (!outStreamTracks) return;
+
+    // format for "T" processes:
+    // ascii: ProcName  X Y Z Time KinE DirectDepoE iMatTo VolNameTo  VolIndexTo [secondaries] \n
+    // bin:   ProcName0 X Y Z Time KinE DirectDepoE iMatTo VolNameTo0 VolIndexTo numSec [secondaries]
+    // not that if energy depo is present on T step, it is in the previous volume!
+    if (bBinaryOutput)
+    {
+        *outStreamDeposition << char( iMatTo == -1 ? 0xFF    // not a transportation step, next material is saved too
+                                                   : 0xF8 ); // transportation step
+
+        *outStreamDeposition << procName << char(0x00);
+
+        double posArr[3];
+        posArr[0] = pos.x();
+        posArr[1] = pos.y();
+        posArr[2] = pos.z();
+        outStreamDeposition->write((char*)posArr,  3*sizeof(double));
+        outStreamDeposition->write((char*)&time,     sizeof(double));
+
+        outStreamDeposition->write((char*)&kinE,     sizeof(double));
+        outStreamDeposition->write((char*)&depoE,    sizeof(double));
+
+        if (iMatTo != -1)
+        {
+            outStreamDeposition->write((char*)&iMatTo,     sizeof(int));
+            *outStreamDeposition << volNameTo << char(0x00);
+            outStreamDeposition->write((char*)&volIndexTo, sizeof(int));
+        }
+
+        int numSec = (secondaries ? secondaries->size() : 0);
+        outStreamDeposition->write((char*)numSec, sizeof(int));
+        if (secondaries)
+        {
+            for (const int & iSec : *secondaries)
+                outStreamDeposition->write((char*)iSec, sizeof(int));
+        }
+    }
+    else
+    {
+        std::stringstream ss;
+        ss.precision(Precision);
+
+        ss << procName << ' ';
+
+        ss << ' ' << pos[0] << ' ' << pos[1] << ' ' << pos[2] << ' ';
+        ss << time << ' ';
+
+        ss << kinE << ' ';
+        ss << depoE;
+
+        if (iMatTo != -1)
+        {
+            ss << ' ';
+            ss << iMatTo << ' ';
+            ss << volNameTo << ' ';
+            ss << volIndexTo;
+        }
+
+        if (secondaries)
+        {
+            for (const int & isec : *secondaries)
+                ss << ' ' << isec;
+        }
+
+        *outStreamTracks << ss.rdbuf() << std::endl;
+    }
 }
 
 void SessionManager::prepareParticleCollection()

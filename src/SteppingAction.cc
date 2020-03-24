@@ -7,12 +7,11 @@
 #include "G4VProcess.hh"
 #include "G4ProcessType.hh"
 #include "G4SystemOfUnits.hh"
-//#include "G4EventManager.hh"
-//#include "G4StackManager.hh"
 #include "G4VUserTrackInformation.hh"
 
 #include <iostream>
 #include <iomanip>
+#include <vector>
 
 SteppingAction::SteppingAction(){}
 
@@ -50,10 +49,11 @@ void SteppingAction::UserSteppingAction(const G4Step *step)
     // format for all other processes:
     // ProcName X Y Z Time KinE DirectDepoE [secondaries]
 
-    std::stringstream ss;
 
     bool bTransport = false;
 
+    /*
+    std::stringstream ss;
     if (proc)
     {
         if (proc->GetProcessType() == fTransportation)
@@ -96,4 +96,50 @@ void SteppingAction::UserSteppingAction(const G4Step *step)
     }
 
     SM.sendLineToTracksOutput(ss);
+    */
+
+    std::string procName;
+    if (proc)
+    {
+        if (proc->GetProcessType() == fTransportation)
+        {
+            if (step->GetPostStepPoint()->GetStepStatus() != fWorldBoundary)
+            {
+                procName = 'T';
+                bTransport = true;
+            }
+            else procName = 'O';
+        }
+        else procName = proc->GetProcessName();
+    }
+    else procName = '?';
+
+    const G4ThreeVector & pos = step->GetPostStepPoint()->GetPosition();
+    const double time = step->GetPostStepPoint()->GetGlobalTime()/ns;
+    const double kinE = step->GetPostStepPoint()->GetKineticEnergy()/keV;
+    const double depo = step->GetTotalEnergyDeposit()/keV;
+
+    const std::vector<int> * secondaries = nullptr;
+    const int numSec = step->GetNumberOfSecondariesInCurrentStep();
+    if (numSec > 0)
+    {
+        TmpSecondaries.resize(numSec);
+        for (int iSec = 0; iSec < numSec; iSec++)
+        {
+            TmpSecondaries[iSec] = SM.getPredictedTrackID();
+            SM.incrementPredictedTrackID();
+        }
+        secondaries = &TmpSecondaries;
+    }
+
+    if (bTransport)
+    {
+        const int iMat = SM.findMaterial( step->GetPostStepPoint()->GetMaterial()->GetName() ); //will terminate session if not found!
+        const std::string & VolNameTo = step->GetPostStepPoint()->GetPhysicalVolume()->GetLogicalVolume()->GetName();
+        const int VolIndexTo = step->GetPostStepPoint()->GetPhysicalVolume()->GetCopyNo();
+
+        SM.saveTrackRecord(procName, pos, time, kinE, depo, secondaries, iMat, VolNameTo, VolIndexTo);
+    }
+    else
+        SM.saveTrackRecord(procName, pos, time, kinE, depo, secondaries);
 }

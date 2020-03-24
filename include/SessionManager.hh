@@ -64,8 +64,19 @@ class SessionManager
         void saveDepoEventId();
         void saveDepoRecord(int iPart, int iMat, double edep, double * pos, double time);
 
-        void sendLineToTracksOutput(const std::string & text);
-        void sendLineToTracksOutput(const std::stringstream & text);
+        //void sendLineToTracksOutput(const std::string & text);
+        //void sendLineToTracksOutput(const std::stringstream & text);
+
+        void saveTrackEventId();  //todo: extracy event id if binary in a separate method
+        void saveTrackStart(int trackID, int parentTrackID,
+                            const G4String & particleName,
+                            const G4ThreeVector & pos, double time, double kinE,
+                            int iMat, const std::string &volName, int volIndex);
+        void saveTrackRecord(const std::string & procName,
+                             const G4ThreeVector & pos, double time,
+                             double kinE, double depoE,
+                             const std::vector<int> *secondaries = nullptr,
+                             int iMatTo = -1, const std::string &volNameTo = "", int volIndexTo = -1);
 
         void resetPredictedTrackID() {NextTrackID = 1;}
         void incrementPredictedTrackID() {NextTrackID++;}
@@ -86,7 +97,7 @@ public:
 
         bool bStoppedOnMonitor = false; // bug fix for Geant4? used in (Monitor)SensitiveDetector and SteppingAction
 
-    private:
+private:
         void prepareParticleCollection();
         void prepareMonitors();
         void prepareInputStream();
