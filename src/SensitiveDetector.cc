@@ -21,22 +21,17 @@ G4bool SensitiveDetector::ProcessHits(G4Step* aStep, G4TouchableHistory*)
 
     SessionManager & SM = SessionManager::getInstance();
 
-    const int iPart = SM.findParticle( aStep->GetTrack()->GetParticleDefinition()->GetParticleName() );
-    const int iMat = SM.findMaterial( aStep->GetPreStepPoint()->GetMaterial()->GetName() ); //will terminate session if not found!
-    const G4ThreeVector& pos = aStep->GetPostStepPoint()->GetPosition();
+    const int&           iPart = SM.findParticle( aStep->GetTrack()->GetParticleDefinition()->GetParticleName() );
+    const int&           iMat = SM.findMaterial( aStep->GetPreStepPoint()->GetMaterial()->GetName() ); //will terminate session if not found!
+    const G4ThreeVector& G4pos = aStep->GetPostStepPoint()->GetPosition();
+    const double&        time = aStep->GetPostStepPoint()->GetGlobalTime()/ns;
 
-    // format:
-    // partId matId DepoE X Y Z Time
+    double pos[3];
+    pos[0] = G4pos.x();
+    pos[1] = G4pos.y();
+    pos[2] = G4pos.z();
 
-    std::stringstream ss;
-    ss.precision(SM.Precision);
-
-    ss << iPart << ' ';
-    ss << iMat << ' ';
-    ss << edep << ' ';
-    ss << pos[0] << ' ' << pos[1] << ' ' << pos[2] << ' ';
-    ss << aStep->GetPostStepPoint()->GetGlobalTime()/ns;
-    SM.sendLineToDepoOutput(ss);
+    SM.saveDepoRecord(iPart, iMat, edep, pos, time);
 
     if (iPart < 0) SM.DepoByNotRegistered += edep;
     else SM.DepoByRegistered += edep;

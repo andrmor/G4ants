@@ -58,8 +58,11 @@ class SessionManager
         int findParticle(const std::string & particleName);  // change to pointer search?
         int findMaterial(const std::string & materialName);  // change to pointer search?
 
-        void sendLineToDepoOutput(const std::string & text);
-        void sendLineToDepoOutput(const std::stringstream & text);
+        //void sendLineToDepoOutput(const std::string & text);
+        //void sendLineToDepoOutput(const std::stringstream & text);
+
+        void saveDepoEventId();
+        void saveDepoRecord(int iPart, int iMat, double edep, double * pos, double time);
 
         void sendLineToTracksOutput(const std::string & text);
         void sendLineToTracksOutput(const std::stringstream & text);
@@ -100,7 +103,7 @@ public:
         std::string FileName_Receipt;
         std::string FileName_Tracks;
         long Seed = 0;
-        std::string EventId;
+        std::string EventId; //  "#number"
         std::string NextEventId;
         std::string GDML;
         std::string PhysicsList;
@@ -116,6 +119,8 @@ public:
         std::ofstream * outStreamTracks = 0;
         std::vector<ParticleRecord> GeneratedPrimaries;
         bool bGuiMode = false;
+
+        bool bBinaryOutput = false;
 
         std::vector<MonitorSensitiveDetector*> Monitors; //can contain nullptr!
 

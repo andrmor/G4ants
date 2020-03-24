@@ -19,7 +19,8 @@ void RunAction::BeginOfRunAction(const G4Run*)
 
     SM.resetPredictedTrackID();
 
-    SM.sendLineToDepoOutput(SM.getEventId());
+    //SM.sendLineToDepoOutput(SM.getEventId());
+    SM.saveDepoEventId();
 
     if (SM.CollectHistory != SessionManager::NotCollecting)
         SM.sendLineToTracksOutput(SM.getEventId());

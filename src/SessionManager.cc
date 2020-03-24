@@ -3,6 +3,7 @@
 #include <iostream>
 #include <sstream>
 #include <fstream>
+#include <iomanip>
 #include <map>
 
 #include "G4ParticleDefinition.hh"
@@ -171,6 +172,7 @@ int SessionManager::findMaterial(const std::string &materialName)
     return it->second;
 }
 
+/*
 void SessionManager::sendLineToDepoOutput(const std::string & text)
 {
     if (!outStreamDeposition) return;
@@ -183,6 +185,56 @@ void SessionManager::sendLineToDepoOutput(const std::stringstream & text)
     if (!outStreamDeposition) return;
 
     *outStreamDeposition << text.rdbuf() << std::endl;
+}
+*/
+
+void SessionManager::saveDepoEventId()
+{
+    if (!outStreamDeposition) return;
+
+    if (bBinaryOutput)
+    {
+        *outStreamDeposition << char(0xEE);
+
+        const int iEvent = std::stoi( EventId.substr(1) );  // kill leading '#'
+        outStreamDeposition->write((char*)&iEvent, sizeof(int));
+    }
+    else
+    {
+        *outStreamDeposition << EventId.data() << std::endl;
+    }
+}
+
+void SessionManager::saveDepoRecord(int iPart, int iMat, double edep, double *pos, double time)
+{
+    if (!outStreamDeposition) return;
+
+    // format:
+    // partId matId DepoE X Y Z Time
+
+    if (bBinaryOutput)
+    {
+        *outStreamDeposition << char(0xFF);
+
+        outStreamDeposition->write((char*)&iPart,   sizeof(int));
+        outStreamDeposition->write((char*)&iMat,    sizeof(int));
+        outStreamDeposition->write((char*)&edep,    sizeof(double));
+        outStreamDeposition->write((char*)pos,    3*sizeof(double));
+        outStreamDeposition->write((char*)&time,    sizeof(double));
+    }
+    else
+    {
+        std::stringstream ss;
+        ss.precision(Precision);
+
+        ss << iPart << ' ';
+        ss << iMat << ' ';
+        ss << edep << ' ';
+        ss << pos[0] << ' ' << pos[1] << ' ' << pos[2] << ' ';
+        ss << time;
+
+        *outStreamDeposition << ss.rdbuf() << std::endl;
+    }
 }
 
 void SessionManager::sendLineToTracksOutput(const std::string &text)
@@ -371,6 +423,12 @@ void SessionManager::ReadConfig(const std::string &ConfigFileName)
 
     bGuiMode = jo["GuiMode"].bool_value();
 
+    if (jo.object_items().count("BinaryOutput") == 0)
+        bBinaryOutput = false;
+    else
+        bBinaryOutput = jo["BinaryOutput"].bool_value();
+    std::cout << "Binary output?" << bBinaryOutput << std::endl;
+
     NumEventsToDo = jo["NumEvents"].int_value();
 
     bool bBuildTracks = jo["BuildTracks"].bool_value();
@@ -418,7 +476,12 @@ void SessionManager::prepareInputStream()
 void SessionManager::prepareOutputDepoStream()
 {
     outStreamDeposition = new std::ofstream();
-    outStreamDeposition->open(FileName_Output);
+
+    if (bBinaryOutput)
+        outStreamDeposition->open(FileName_Output, std::ios::out | std::ios::binary);
+    else
+        outStreamDeposition->open(FileName_Output);
+
     if (!outStreamDeposition->is_open())
         terminateSession("Cannot open file to store deposition data");
 }
