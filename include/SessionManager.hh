@@ -102,7 +102,7 @@ private:
         void prepareMonitors();
         void prepareInputStream();
         void prepareOutputDepoStream();
-        void prepareOutputTracks();
+        void prepareOutputHistoryStream();
         void executeAdditionalCommands();
         void generateReceipt();
         void storeMonitorsData();
@@ -127,7 +127,7 @@ private:
         std::map<std::string, double> StepLimitMap;
         std::ifstream * inStreamPrimaries = 0;
         std::ofstream * outStreamDeposition = 0;
-        std::ofstream * outStreamTracks = 0;
+        std::ofstream * outStreamHistory = 0;
         std::vector<ParticleRecord> GeneratedPrimaries;
         bool bGuiMode = false;
 

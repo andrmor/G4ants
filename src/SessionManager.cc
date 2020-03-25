@@ -23,7 +23,7 @@ SessionManager::SessionManager() {}
 SessionManager::~SessionManager()
 {
     delete outStreamDeposition;
-    delete outStreamTracks;
+    delete outStreamHistory;
     delete inStreamPrimaries;
 }
 
@@ -42,7 +42,7 @@ void SessionManager::startSession()
     prepareOutputDepoStream();
 
     // preparing ouptut for track export
-    if (CollectHistory != NotCollecting) prepareOutputTracks();
+    if (CollectHistory != NotCollecting) prepareOutputHistoryStream();
 
     //set random generator. The seed was provided in the config file
     CLHEP::RanecuEngine* randGen = new CLHEP::RanecuEngine();
@@ -254,18 +254,18 @@ void SessionManager::sendLineToTracksOutput(const std::stringstream &text)
 
 void SessionManager::saveTrackEventId()
 {
-    if (!outStreamTracks) return;
+    if (!outStreamHistory) return;
 
     if (bBinaryOutput)
     {
-        *outStreamTracks << char(0xEE);
+        *outStreamHistory << char(0xEE);
 
         const int iEvent = std::stoi( EventId.substr(1) );  // kill leading '#'
-        outStreamTracks->write((char*)&iEvent, sizeof(int));
+        outStreamHistory->write((char*)&iEvent, sizeof(int));
     }
     else
     {
-        *outStreamTracks << EventId.data() << std::endl;
+        *outStreamHistory << EventId.data() << std::endl;
     }
 }
 
@@ -274,31 +274,31 @@ void SessionManager::saveTrackStart(int trackID, int parentTrackID,
                                     const G4ThreeVector & pos, double time, double kinE,
                                     int iMat, const std::string &volName, int volIndex)
 {
-    if (!outStreamTracks) return;
+    if (!outStreamHistory) return;
 
     // format:
     // > TrackID ParentTrackID Particle X Y Z Time E iMat VolName VolIndex
 
     if (bBinaryOutput)
     {
-        *outStreamDeposition << char(0xFF);
+        *outStreamHistory << char(0xFF);
 
-        outStreamDeposition->write((char*)&trackID,       sizeof(int));
-        outStreamDeposition->write((char*)&parentTrackID, sizeof(int));
+        outStreamHistory->write((char*)&trackID,       sizeof(int));
+        outStreamHistory->write((char*)&parentTrackID, sizeof(int));
 
-        *outStreamDeposition << particleName << char(0x00);
+        *outStreamHistory << particleName << char(0x00);
 
         double posArr[3];
         posArr[0] = pos.x();
         posArr[1] = pos.y();
         posArr[2] = pos.z();
-        outStreamDeposition->write((char*)posArr,  3*sizeof(double));
-        outStreamDeposition->write((char*)&time,     sizeof(double));
-        outStreamDeposition->write((char*)&kinE,     sizeof(double));
+        outStreamHistory->write((char*)posArr,  3*sizeof(double));
+        outStreamHistory->write((char*)&time,     sizeof(double));
+        outStreamHistory->write((char*)&kinE,     sizeof(double));
 
-        outStreamDeposition->write((char*)&iMat,     sizeof(int));
-        *outStreamDeposition << volName << char(0x00);
-        outStreamDeposition->write((char*)&volIndex, sizeof(int));
+        outStreamHistory->write((char*)&iMat,     sizeof(int));
+        *outStreamHistory << volName << char(0x00);
+        outStreamHistory->write((char*)&volIndex, sizeof(int));
     }
     else
     {
@@ -316,7 +316,7 @@ void SessionManager::saveTrackStart(int trackID, int parentTrackID,
         ss << volName << ' ';
         ss << volIndex;
 
-        *outStreamTracks << ss.rdbuf() << std::endl;
+        *outStreamHistory << ss.rdbuf() << std::endl;
     }
 
 }
@@ -327,7 +327,7 @@ void SessionManager::saveTrackRecord(const std::string & procName,
                                      const std::vector<int> * secondaries,
                                      int iMatTo, const std::string & volNameTo, int volIndexTo)
 {
-    if (!outStreamTracks) return;
+    if (!outStreamHistory) return;
 
     // format for "T" processes:
     // ascii: ProcName  X Y Z Time KinE DirectDepoE iMatTo VolNameTo  VolIndexTo [secondaries] \n
@@ -335,34 +335,34 @@ void SessionManager::saveTrackRecord(const std::string & procName,
     // not that if energy depo is present on T step, it is in the previous volume!
     if (bBinaryOutput)
     {
-        *outStreamDeposition << char( iMatTo == -1 ? 0xFF    // not a transportation step, next material is saved too
-                                                   : 0xF8 ); // transportation step
+        *outStreamHistory << char( iMatTo == -1 ? 0xFF    // not a transportation step, next material is saved too
+                                                : 0xF8 ); // transportation step
 
-        *outStreamDeposition << procName << char(0x00);
+        *outStreamHistory << procName << char(0x00);
 
         double posArr[3];
         posArr[0] = pos.x();
         posArr[1] = pos.y();
         posArr[2] = pos.z();
-        outStreamDeposition->write((char*)posArr,  3*sizeof(double));
-        outStreamDeposition->write((char*)&time,     sizeof(double));
+        outStreamHistory->write((char*)posArr,  3*sizeof(double));
+        outStreamHistory->write((char*)&time,     sizeof(double));
 
-        outStreamDeposition->write((char*)&kinE,     sizeof(double));
-        outStreamDeposition->write((char*)&depoE,    sizeof(double));
+        outStreamHistory->write((char*)&kinE,     sizeof(double));
+        outStreamHistory->write((char*)&depoE,    sizeof(double));
 
         if (iMatTo != -1)
         {
-            outStreamDeposition->write((char*)&iMatTo,     sizeof(int));
-            *outStreamDeposition << volNameTo << char(0x00);
-            outStreamDeposition->write((char*)&volIndexTo, sizeof(int));
+            outStreamHistory->write((char*)&iMatTo,     sizeof(int));
+            *outStreamHistory << volNameTo << char(0x00);
+            outStreamHistory->write((char*)&volIndexTo, sizeof(int));
         }
 
         int numSec = (secondaries ? secondaries->size() : 0);
-        outStreamDeposition->write((char*)numSec, sizeof(int));
+        outStreamHistory->write((char*)&numSec, sizeof(int));
         if (secondaries)
         {
             for (const int & iSec : *secondaries)
-                outStreamDeposition->write((char*)iSec, sizeof(int));
+                outStreamHistory->write((char*)&iSec, sizeof(int));
         }
     }
     else
@@ -372,7 +372,7 @@ void SessionManager::saveTrackRecord(const std::string & procName,
 
         ss << procName << ' ';
 
-        ss << ' ' << pos[0] << ' ' << pos[1] << ' ' << pos[2] << ' ';
+        ss << pos[0] << ' ' << pos[1] << ' ' << pos[2] << ' ';
         ss << time << ' ';
 
         ss << kinE << ' ';
@@ -392,7 +392,7 @@ void SessionManager::saveTrackRecord(const std::string & procName,
                 ss << ' ' << isec;
         }
 
-        *outStreamTracks << ss.rdbuf() << std::endl;
+        *outStreamHistory << ss.rdbuf() << std::endl;
     }
 }
 
@@ -631,12 +631,17 @@ void SessionManager::prepareOutputDepoStream()
         terminateSession("Cannot open file to store deposition data");
 }
 
-void SessionManager::prepareOutputTracks()
+void SessionManager::prepareOutputHistoryStream()
 {
-    outStreamTracks = new std::ofstream();
-    outStreamTracks->open(FileName_Tracks);
-    if (!outStreamTracks->is_open())
-        terminateSession("Cannot open file to export tracks data");
+    outStreamHistory = new std::ofstream();
+
+    if (bBinaryOutput)
+        outStreamHistory->open(FileName_Tracks, std::ios::out | std::ios::binary);
+    else
+        outStreamHistory->open(FileName_Tracks);
+
+    if (!outStreamHistory->is_open())
+        terminateSession("Cannot open file to export history/tracks data");
 }
 
 void SessionManager::executeAdditionalCommands()
