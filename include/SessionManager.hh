@@ -13,6 +13,7 @@
 class G4ParticleDefinition;
 class G4StepPoint;
 class MonitorSensitiveDetector;
+class G4LogicalVolume;
 
 struct ParticleRecord
 {
@@ -82,6 +83,10 @@ class SessionManager
         void incrementPredictedTrackID() {NextTrackID++;}
         int  getPredictedTrackID() {return NextTrackID;}
 
+        void findExitVolume();
+
+        void saveParticle(const G4String & particle, double energy, double time, double * PosDir);
+
 public:
         //runtime
         double DepoByRegistered = 0;
@@ -97,12 +102,20 @@ public:
 
         bool bStoppedOnMonitor = false; // bug fix for Geant4? used in (Monitor)SensitiveDetector and SteppingAction
 
+        bool bExitParticles = false;
+        G4LogicalVolume * ExitVolume = nullptr;
+        bool   bExitTimeWindow = false;
+        double ExitTimeFrom = 0;
+        double ExitTimeTo = 1.0e6;
+        bool   bExitKill = true;
+
 private:
         void prepareParticleCollection();
         void prepareMonitors();
         void prepareInputStream();
         void prepareOutputDepoStream();
         void prepareOutputHistoryStream();
+        void prepareOutputExitStream();
         void executeAdditionalCommands();
         void generateReceipt();
         void storeMonitorsData();
@@ -125,15 +138,19 @@ private:
         std::vector<std::string> SensitiveVolumes;
         std::vector<std::string> OnStartCommands;
         std::map<std::string, double> StepLimitMap;
-        std::ifstream * inStreamPrimaries = 0;
-        std::ofstream * outStreamDeposition = 0;
-        std::ofstream * outStreamHistory = 0;
+        std::ifstream * inStreamPrimaries   = nullptr;
+        std::ofstream * outStreamDeposition = nullptr;
+        std::ofstream * outStreamHistory    = nullptr;
+        std::ofstream * outStreamExit       = nullptr;
         std::vector<ParticleRecord> GeneratedPrimaries;
         bool bGuiMode = false;
 
         bool bBinaryOutput = false;
 
         std::vector<MonitorSensitiveDetector*> Monitors; //can contain nullptr!
+
+        std::string FileName_Exit;
+        std::string ExitVolumeName;
 
         int EventsDone = 0;
         int NumEventsToDo = 0;

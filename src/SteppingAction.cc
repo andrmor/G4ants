@@ -12,7 +12,7 @@
 #include <iostream>
 #include <iomanip>
 #include <vector>
-
+#include <QDebug>
 SteppingAction::SteppingAction(){}
 
 SteppingAction::~SteppingAction(){}
@@ -20,6 +20,40 @@ SteppingAction::~SteppingAction(){}
 void SteppingAction::UserSteppingAction(const G4Step *step)
 {
     SessionManager & SM = SessionManager::getInstance();
+
+    if (SM.bExitParticles)
+    {
+        const G4VProcess * proc = step->GetPostStepPoint()->GetProcessDefinedStep();
+        if (proc && proc->GetProcessType() == fTransportation)
+        {
+            G4LogicalVolume * volFrom = step->GetPreStepPoint()->GetPhysicalVolume()->GetLogicalVolume();
+            if (volFrom == SM.ExitVolume)
+            {
+                const G4StepPoint * postP  = step->GetPostStepPoint();
+                const double time = postP->GetGlobalTime()/ns;
+                if (!SM.bExitTimeWindow || (time > SM.ExitTimeFrom && time < SM.ExitTimeTo) )
+                {
+                    double buf[6];
+                    const G4ThreeVector & pos = postP->GetPosition();
+                    buf[0] = pos[0]/mm;
+                    buf[1] = pos[1]/mm;
+                    buf[2] = pos[2]/mm;
+                    const G4ThreeVector & dir = postP->GetMomentumDirection();
+                    buf[3] = dir[0];
+                    buf[4] = dir[1];
+                    buf[5] = dir[2];
+
+                    SM.saveParticle(step->GetTrack()->GetParticleDefinition()->GetParticleName(),
+                                    postP->GetKineticEnergy()/keV,
+                                    time,
+                                    buf);
+
+                    if (SM.bExitKill)
+                        step->GetTrack()->SetTrackStatus(fStopAndKill);
+                }
+            }
+        }
+    }
 
     if (SM.bMonitorsRequireSteppingAction)
         if (!step->GetTrack()->GetUserInformation()) //if exists, already marked as "indirect"
@@ -42,62 +76,7 @@ void SteppingAction::UserSteppingAction(const G4Step *step)
         if (step->GetPostStepPoint()->GetStepStatus() != fWorldBoundary && SM.CollectHistory == SessionManager::OnlyTracks)
             return; // skip transportation if only collecting tracks
 
-    // format for "T" processes:
-    // ProcName X Y Z Time KinE DirectDepoE iMatTo VolNameTo VolIndexTo [secondaries]
-    // not that if energy depo is present on T step, it is in the previous volume!
-
-    // format for all other processes:
-    // ProcName X Y Z Time KinE DirectDepoE [secondaries]
-
-
     bool bTransport = false;
-
-    /*
-    std::stringstream ss;
-    if (proc)
-    {
-        if (proc->GetProcessType() == fTransportation)
-        {
-            if (step->GetPostStepPoint()->GetStepStatus() != fWorldBoundary)
-            {
-                ss << 'T';
-                bTransport = true;
-            }
-            else ss << 'O';
-        }
-        else ss << proc->GetProcessName();
-    }
-    else ss << '?';
-
-    const G4ThreeVector & pos = step->GetPostStepPoint()->GetPosition();
-    ss.precision(SM.Precision);
-
-    ss << ' ' << pos[0] << ' ' << pos[1] << ' ' << pos[2] << ' ';
-    ss << step->GetPostStepPoint()->GetGlobalTime()/ns << ' ';
-    ss << step->GetPostStepPoint()->GetKineticEnergy()/keV << ' ';
-    ss << step->GetTotalEnergyDeposit()/keV;
-
-    if (bTransport)
-    {
-        const int iMat = SM.findMaterial( step->GetPostStepPoint()->GetMaterial()->GetName() ); //will terminate session if not found!
-        ss << ' ' << iMat << ' ';
-        ss << step->GetPostStepPoint()->GetPhysicalVolume()->GetLogicalVolume()->GetName() << ' ';
-        ss << step->GetPostStepPoint()->GetPhysicalVolume()->GetCopyNo() << ' ';
-    }
-
-    const int numSec = step->GetNumberOfSecondariesInCurrentStep();
-    if (numSec > 0)
-    {
-        for (int i=0; i<numSec; i++)
-        {
-            ss << ' ' << SM.getPredictedTrackID();
-            SM.incrementPredictedTrackID();
-        }
-    }
-
-    SM.sendLineToTracksOutput(ss);
-    */
-
     std::string procName;
     if (proc)
     {

@@ -22,6 +22,7 @@ SessionManager::SessionManager() {}
 
 SessionManager::~SessionManager()
 {
+    delete outStreamExit;
     delete outStreamDeposition;
     delete outStreamHistory;
     delete inStreamPrimaries;
@@ -44,12 +45,17 @@ void SessionManager::startSession()
     // preparing ouptut for track export
     if (CollectHistory != NotCollecting) prepareOutputHistoryStream();
 
+    // preparing ouptut for exiting particle export
+    if (bExitParticles) prepareOutputExitStream();
+
     //set random generator. The seed was provided in the config file
     CLHEP::RanecuEngine* randGen = new CLHEP::RanecuEngine();
     randGen->setSeed(Seed);
     G4Random::setTheEngine(randGen);
 
     executeAdditionalCommands();
+
+    findExitVolume();
 }
 
 void SessionManager::terminateSession(const std::string & ReturnMessage)
@@ -276,12 +282,11 @@ void SessionManager::saveTrackStart(int trackID, int parentTrackID,
 {
     if (!outStreamHistory) return;
 
-    // format:
-    // > TrackID ParentTrackID Particle X Y Z Time E iMat VolName VolIndex
-
     if (bBinaryOutput)
     {
-        *outStreamHistory << char(0xFF);
+        //format:
+        //F0 trackId(int) parentTrackId(int) PartName(string) 0 X(double) Y(double) Z(double) time(double) kinEnergy(double) NextMat(int) NextVolNmae(string) 0 NextVolIndex(int)
+        *outStreamHistory << char(0xF0);
 
         outStreamHistory->write((char*)&trackID,       sizeof(int));
         outStreamHistory->write((char*)&parentTrackID, sizeof(int));
@@ -302,6 +307,9 @@ void SessionManager::saveTrackStart(int trackID, int parentTrackID,
     }
     else
     {
+        // format:
+        // > TrackID ParentTrackID Particle X Y Z Time E iMat VolName VolIndex
+
         std::stringstream ss;
         ss.precision(Precision);
 
@@ -331,12 +339,13 @@ void SessionManager::saveTrackRecord(const std::string & procName,
 
     // format for "T" processes:
     // ascii: ProcName  X Y Z Time KinE DirectDepoE iMatTo VolNameTo  VolIndexTo [secondaries] \n
-    // bin:   ProcName0 X Y Z Time KinE DirectDepoE iMatTo VolNameTo0 VolIndexTo numSec [secondaries]
+    // bin:   [FF or F8] ProcName0 X Y Z Time KinE DirectDepoE iMatTo VolNameTo0 VolIndexTo numSec [secondaries]
+    // for non-"T" process, iMatTo VolNameTo  VolIndexTo are absent
     // not that if energy depo is present on T step, it is in the previous volume!
     if (bBinaryOutput)
     {
-        *outStreamHistory << char( iMatTo == -1 ? 0xFF    // not a transportation step, next material is saved too
-                                                : 0xF8 ); // transportation step
+        *outStreamHistory << char( iMatTo == -1 ? 0xFF    // not a transportation step
+                                                : 0xF8 ); // transportation step, next volume/material is saved too
 
         *outStreamHistory << procName << char(0x00);
 
@@ -393,6 +402,53 @@ void SessionManager::saveTrackRecord(const std::string & procName,
         }
 
         *outStreamHistory << ss.rdbuf() << std::endl;
+    }
+}
+
+#include "G4LogicalVolumeStore.hh"
+#include "G4LogicalVolume.hh"
+void SessionManager::findExitVolume()
+{
+    if (!bExitParticles) return;
+
+    G4LogicalVolumeStore* lvs = G4LogicalVolumeStore::GetInstance();
+
+    std::vector<G4LogicalVolume*>::const_iterator lvciter;
+    for (lvciter = lvs->begin(); lvciter != lvs->end(); ++lvciter)
+    {
+        if ( (std::string)(*lvciter)->GetName() == ExitVolumeName)
+        {
+            ExitVolume = *lvciter;
+            std::cout << "Found exit volume " << ExitVolume << " --> " << ExitVolume->GetName().data() << std::endl;
+            return;
+        }
+    }
+
+    //not found
+    bExitParticles = false;
+}
+
+void SessionManager::saveParticle(const G4String &particle, double energy, double time, double *PosDir)
+{
+    if (bBinaryOutput)
+    {
+        *outStreamExit << particle << char(0x00);
+        outStreamExit->write((char*)&energy,  sizeof(double));
+        outStreamExit->write((char*)&time,    sizeof(double));
+        outStreamExit->write((char*)PosDir, 6*sizeof(double));
+    }
+    else
+    {
+        std::stringstream ss;
+        ss.precision(Precision);
+
+        ss << particle << ' ';
+        ss << energy << ' ';
+        ss << time << ' ';
+        ss << PosDir[0] << ' ' << PosDir[1] << ' ' << PosDir[2] << ' ';     //position
+        ss << PosDir[3] << ' ' << PosDir[4] << ' ' << PosDir[5];            //direction
+
+        *outStreamExit << ss.rdbuf() << std::endl;
     }
 }
 
@@ -572,7 +628,26 @@ void SessionManager::ReadConfig(const std::string &ConfigFileName)
         bBinaryOutput = false;
     else
         bBinaryOutput = jo["BinaryOutput"].bool_value();
-    std::cout << "Binary output?" << bBinaryOutput << std::endl;
+    std::cout << "Binary output? " << bBinaryOutput << std::endl;
+
+    if (jo.object_items().count("SaveExitParticles") == 0) bExitParticles = false;
+    else
+    {
+        json11::Json jsExit = jo["SaveExitParticles"].object_items();
+
+        bExitParticles   = jsExit["Enabled"].bool_value();
+        bExitTimeWindow  = jsExit["UseTimeWindow"].bool_value();
+        bExitKill        = jsExit["StopTrack"].bool_value();
+
+        FileName_Exit    = jsExit["FileName"].string_value();
+        ExitVolumeName   = jsExit["VolumeName"].string_value();
+
+        ExitTimeFrom     = jsExit["TimeFrom"].number_value();
+        ExitTimeTo       = jsExit["TimeTo"].number_value();
+
+        if (bExitParticles)
+            std::cout << "Save exit particles enabled for volume: " << ExitVolumeName << "  Kill on exit? " << bExitKill << std::endl;
+    }
 
     NumEventsToDo = jo["NumEvents"].int_value();
 
@@ -642,6 +717,19 @@ void SessionManager::prepareOutputHistoryStream()
 
     if (!outStreamHistory->is_open())
         terminateSession("Cannot open file to export history/tracks data");
+}
+
+void SessionManager::prepareOutputExitStream()
+{
+    outStreamExit = new std::ofstream();
+
+    if (bBinaryOutput)
+        outStreamExit->open(FileName_Exit, std::ios::out | std::ios::binary);
+    else
+        outStreamExit->open(FileName_Exit);
+
+    if (!outStreamExit->is_open())
+        terminateSession("Cannot open file to export exiting particle data");
 }
 
 void SessionManager::executeAdditionalCommands()
