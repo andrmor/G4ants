@@ -18,15 +18,7 @@ void RunAction::BeginOfRunAction(const G4Run*)
     SessionManager & SM = SessionManager::getInstance();
 
     SM.resetPredictedTrackID();
-
-    //SM.sendLineToDepoOutput(SM.getEventId());
-    SM.saveDepoEventId();
-
-    if (SM.CollectHistory != SessionManager::NotCollecting)
-    {
-        //SM.sendLineToTracksOutput(SM.getEventId());
-        SM.saveTrackEventId();
-    }
+    SM.writeNewEventMarker();
 
     //inform the runManager to save random number seed             *** need?
     //G4RunManager::GetRunManager()->SetRandomNumberStore(false);

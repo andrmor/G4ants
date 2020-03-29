@@ -59,16 +59,10 @@ class SessionManager
         int findParticle(const std::string & particleName);  // change to pointer search?
         int findMaterial(const std::string & materialName);  // change to pointer search?
 
-        //void sendLineToDepoOutput(const std::string & text);
-        //void sendLineToDepoOutput(const std::stringstream & text);
+        void writeNewEventMarker();
 
-        void saveDepoEventId();
         void saveDepoRecord(int iPart, int iMat, double edep, double * pos, double time);
 
-        //void sendLineToTracksOutput(const std::string & text);
-        //void sendLineToTracksOutput(const std::stringstream & text);
-
-        void saveTrackEventId();  //todo: extracy event id if binary in a separate method
         void saveTrackStart(int trackID, int parentTrackID,
                             const G4String & particleName,
                             const G4ThreeVector & pos, double time, double kinE,

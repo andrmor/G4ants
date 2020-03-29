@@ -178,36 +178,41 @@ int SessionManager::findMaterial(const std::string &materialName)
     return it->second;
 }
 
-/*
-void SessionManager::sendLineToDepoOutput(const std::string & text)
+void SessionManager::writeNewEventMarker()
 {
-    if (!outStreamDeposition) return;
-
-    *outStreamDeposition << text.data() << std::endl;
-}
-
-void SessionManager::sendLineToDepoOutput(const std::stringstream & text)
-{
-    if (!outStreamDeposition) return;
-
-    *outStreamDeposition << text.rdbuf() << std::endl;
-}
-*/
-
-void SessionManager::saveDepoEventId()
-{
-    if (!outStreamDeposition) return;
-
-    if (bBinaryOutput)
+    if (outStreamDeposition)
     {
-        *outStreamDeposition << char(0xEE);
+        if (bBinaryOutput)
+        {
+            *outStreamDeposition << char(0xEE);
 
-        const int iEvent = std::stoi( EventId.substr(1) );  // kill leading '#'
-        outStreamDeposition->write((char*)&iEvent, sizeof(int));
+            const int iEvent = std::stoi( EventId.substr(1) );  // kill leading '#'
+            outStreamDeposition->write((char*)&iEvent, sizeof(int));
+        }
+        else
+            *outStreamDeposition << EventId.data() << std::endl;
     }
-    else
+
+    if (CollectHistory != SessionManager::NotCollecting)
+        if (outStreamHistory)
+        {
+            if (bBinaryOutput)
+            {
+                *outStreamHistory << char(0xEE);
+
+                const int iEvent = std::stoi( EventId.substr(1) );  // kill leading '#'
+                outStreamHistory->write((char*)&iEvent, sizeof(int));
+            }
+            else
+                *outStreamHistory << EventId.data() << std::endl;
+        }
+
+    if (outStreamExit)
     {
-        *outStreamDeposition << EventId.data() << std::endl;
+        if (bBinaryOutput)
+            *outStreamExit << char(0xEE);
+        else
+            *outStreamExit << "#" << std::endl;
     }
 }
 
@@ -240,38 +245,6 @@ void SessionManager::saveDepoRecord(int iPart, int iMat, double edep, double *po
         ss << time;
 
         *outStreamDeposition << ss.rdbuf() << std::endl;
-    }
-}
-
-/*
-void SessionManager::sendLineToTracksOutput(const std::string &text)
-{
-    if (!outStreamTracks) return;
-
-    *outStreamTracks << text.data() << std::endl;
-}
-void SessionManager::sendLineToTracksOutput(const std::stringstream &text)
-{
-    if (!outStreamTracks) return;
-
-    *outStreamTracks << text.rdbuf() << std::endl;
-}
-*/
-
-void SessionManager::saveTrackEventId()
-{
-    if (!outStreamHistory) return;
-
-    if (bBinaryOutput)
-    {
-        *outStreamHistory << char(0xEE);
-
-        const int iEvent = std::stoi( EventId.substr(1) );  // kill leading '#'
-        outStreamHistory->write((char*)&iEvent, sizeof(int));
-    }
-    else
-    {
-        *outStreamHistory << EventId.data() << std::endl;
     }
 }
 
@@ -432,6 +405,7 @@ void SessionManager::saveParticle(const G4String &particle, double energy, doubl
 {
     if (bBinaryOutput)
     {
+        *outStreamExit << char(0xFF);
         *outStreamExit << particle << char(0x00);
         outStreamExit->write((char*)&energy,  sizeof(double));
         outStreamExit->write((char*)&time,    sizeof(double));
