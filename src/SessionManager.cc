@@ -127,7 +127,44 @@ std::vector<ParticleRecord> &SessionManager::getNextEventPrimaries()
     {
         if (bBinaryPrimaries)
         {
+            int eventId;
+            std::string pn;
+            char ch;
+            while (inStreamPrimaries->get(ch))
+            {
+                if (inStreamPrimaries->eof()) break;
 
+                if (ch == (char)0xEE)
+                {
+                    inStreamPrimaries->read((char*)&eventId, sizeof(int));
+                    NextEventId = '#' + std::to_string(eventId);
+                    break; //event finished
+                }
+                else if (ch == (char)0xFF)
+                {
+                    pn.clear();
+                    while (inStreamPrimaries->get(ch))
+                    {
+                        if (ch == (char)0x00) break;
+                        pn += ch;
+                    }
+
+                    ParticleRecord r;
+                    r.Particle = findGeant4Particle(pn); // terminates session if not found
+                    inStreamPrimaries->read((char*)&r.Energy,       sizeof(double));
+                    inStreamPrimaries->read((char*)&r.Position[0],  sizeof(double));
+                    inStreamPrimaries->read((char*)&r.Position[1],  sizeof(double));
+                    inStreamPrimaries->read((char*)&r.Position[2],  sizeof(double));
+                    inStreamPrimaries->read((char*)&r.Direction[0], sizeof(double));
+                    inStreamPrimaries->read((char*)&r.Direction[1], sizeof(double));
+                    inStreamPrimaries->read((char*)&r.Direction[2], sizeof(double));
+                    inStreamPrimaries->read((char*)&r.Time,         sizeof(double));
+
+                    std::cout << pn << " -> " << r.Particle->GetParticleName() << " time="<< r.Time << std::endl;
+
+                    GeneratedPrimaries.push_back(r);
+                }
+            }
         }
         else
         {
@@ -716,19 +753,30 @@ void SessionManager::ReadConfig(const std::string &ConfigFileName)
 
 void SessionManager::prepareInputStream()
 {
-    inStreamPrimaries = new std::ifstream(FileName_Input);
-    if (!inStreamPrimaries->is_open())
-        terminateSession("Cannot open file with primaries to generate");
-
-    if (!bG4antsPrimaries || !bBinaryPrimaries)
+    if (bG4antsPrimaries && bBinaryPrimaries)
     {
-        getline( *inStreamPrimaries, EventId );
-        if (EventId.size()<2 || EventId[0] != '#')
-            terminateSession("Unexpected format of the file with primaries");
+        inStreamPrimaries = new std::ifstream(FileName_Input, std::ios::in | std::ios::binary);
+        if (!inStreamPrimaries->is_open()) terminateSession("Cannot open binary file with primaries");
+
+        int eventId;
+        char ch = (char)0x00;
+        inStreamPrimaries->get(ch);
+        if (ch == (char)0xEE)
+        {
+            inStreamPrimaries->read((char*)&eventId, sizeof(int));
+            EventId = '#' + std::to_string(eventId);
+        }
+
+        if (ch != (char)0xEE || inStreamPrimaries->fail())
+            terminateSession("Unexpected format of the binary file with primaries");
     }
     else
     {
+        inStreamPrimaries = new std::ifstream(FileName_Input);
+        if (!inStreamPrimaries->is_open()) terminateSession("Cannot open file with primaries");
 
+        getline( *inStreamPrimaries, EventId );
+        if (EventId.size()<2 || EventId[0] != '#') terminateSession("Unexpected format of the file with primaries");
     }
 
     std::cout << EventId << std::endl;
