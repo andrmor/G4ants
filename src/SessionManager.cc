@@ -408,8 +408,8 @@ void SessionManager::saveParticle(const G4String &particle, double energy, doubl
         *outStreamExit << char(0xFF);
         *outStreamExit << particle << char(0x00);
         outStreamExit->write((char*)&energy,  sizeof(double));
-        outStreamExit->write((char*)&time,    sizeof(double));
         outStreamExit->write((char*)PosDir, 6*sizeof(double));
+        outStreamExit->write((char*)&time,    sizeof(double));
     }
     else
     {
@@ -418,9 +418,9 @@ void SessionManager::saveParticle(const G4String &particle, double energy, doubl
 
         ss << particle << ' ';
         ss << energy << ' ';
-        ss << time << ' ';
         ss << PosDir[0] << ' ' << PosDir[1] << ' ' << PosDir[2] << ' ';     //position
         ss << PosDir[3] << ' ' << PosDir[4] << ' ' << PosDir[5];            //direction
+        ss << time << ' ';
 
         *outStreamExit << ss.rdbuf() << std::endl;
     }
@@ -505,6 +505,10 @@ void SessionManager::ReadConfig(const std::string &ConfigFileName)
     if (PhysicsList.empty())
         terminateSession("Reference physics list is not provided");
 
+    bG4antsPrimaries = false;
+    if (jo.object_items().count("Primaries_G4ants") != 0) bG4antsPrimaries = jo["Primaries_G4ants"].bool_value();
+    bBinaryPrimaries = false;
+    if (jo.object_items().count("Primaries_Binary") != 0) bBinaryPrimaries = jo["Primaries_Binary"].bool_value();
     //extracting name of the file with primaries to generate
     FileName_Input = jo["File_Primaries"].string_value();
     if (FileName_Input.empty())

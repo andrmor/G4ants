@@ -132,6 +132,8 @@ private:
         std::vector<std::string> SensitiveVolumes;
         std::vector<std::string> OnStartCommands;
         std::map<std::string, double> StepLimitMap;
+        bool bG4antsPrimaries = false;
+        bool bBinaryPrimaries = false;
         std::ifstream * inStreamPrimaries   = nullptr;
         std::ofstream * outStreamDeposition = nullptr;
         std::ofstream * outStreamHistory    = nullptr;
