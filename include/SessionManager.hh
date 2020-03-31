@@ -114,6 +114,9 @@ private:
         void generateReceipt();
         void storeMonitorsData();
 
+        G4ParticleDefinition * findGeant4Particle(const std::string & particleName);
+        bool extractIonInfo(const std::string & text, int & Z, int & A, double & E);
+
     private:
         std::string FileName_Input;
         std::string FileName_Output;
@@ -161,6 +164,8 @@ private:
         bool bError;
         std::string ErrorMessage;
         std::vector<std::string> WarningMessages;
+
+        std::map<std::string, int> ElementToZ;
 };
 
 #endif // SESSIONMANAGER_H
