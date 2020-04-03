@@ -50,6 +50,16 @@ void SteppingAction::UserSteppingAction(const G4Step *step)
 
                     if (SM.bExitKill)
                         step->GetTrack()->SetTrackStatus(fStopAndKill);
+
+                    if (SM.CollectHistory != SessionManager::NotCollecting)
+                    {
+                        const G4ThreeVector & pos = step->GetPostStepPoint()->GetPosition();
+                        const double kinE = step->GetPostStepPoint()->GetKineticEnergy()/keV;
+                        const double depoE = step->GetTotalEnergyDeposit()/keV;
+                        SM.saveTrackRecord("ExitStop",
+                                           pos, time,
+                                           kinE, depoE);
+                    }
                 }
             }
         }

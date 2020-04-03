@@ -105,25 +105,12 @@ G4bool MonitorSensitiveDetector::ProcessHits(G4Step *step, G4TouchableHistory *)
                 SessionManager & SM = SessionManager::getInstance();
                 if (SM.CollectHistory != SessionManager::NotCollecting)
                 {
-                    /*
-                    // ProcName X Y Z Time KinE DirectDepoE [secondaries]
-                    std::stringstream ss;
-                    ss << "MonitorStop";
-                    const G4ThreeVector & pos = step->GetPostStepPoint()->GetPosition();
-                    ss.precision(SM.Precision);
-                    ss << ' ' << pos[0] << ' ' << pos[1] << ' ' << pos[2] << ' ';
-                    ss << step->GetPostStepPoint()->GetGlobalTime()/ns << ' ';
-                    ss << step->GetPostStepPoint()->GetKineticEnergy()/keV << ' ';
-                    ss << '0';        //step->GetTotalEnergyDeposit()/keV;
-                    SM.sendLineToTracksOutput(ss);
-                    */
-
                     const G4ThreeVector & pos = step->GetPostStepPoint()->GetPosition();
                     const double kinE = step->GetPostStepPoint()->GetKineticEnergy()/keV;
-                    //step->GetTotalEnergyDeposit()/keV;
+                    const double depoE = step->GetTotalEnergyDeposit()/keV;
                     SM.saveTrackRecord("MonitorStop",
                                        pos, time,
-                                       kinE, 0);
+                                       kinE, depoE);
                 }
                 // bug in Geant4.10.5.1? Tracking reports one more step - transportation from the monitor to the next volume
                 //the next is the fix:
