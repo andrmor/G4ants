@@ -160,7 +160,7 @@ std::vector<ParticleRecord> &SessionManager::getNextEventPrimaries()
                     inStreamPrimaries->read((char*)&r.Direction[2], sizeof(double));
                     inStreamPrimaries->read((char*)&r.Time,         sizeof(double));
 
-                    std::cout << pn << " -> " << r.Particle->GetParticleName() << " time="<< r.Time << std::endl;
+                    //std::cout << pn << " -> " << r.Particle->GetParticleName() << " time="<< r.Time << std::endl;
 
                     GeneratedPrimaries.push_back(r);
                 }
@@ -199,7 +199,7 @@ std::vector<ParticleRecord> &SessionManager::getNextEventPrimaries()
 
                 r.Particle = findGeant4Particle(particleName); // terminates session if not found
 
-                std::cout << particleName << " -> " << r.Particle->GetParticleName() << " time="<< r.Time << std::endl;
+                //std::cout << particleName << " -> " << r.Particle->GetParticleName() << " time="<< r.Time << std::endl;
 
                 GeneratedPrimaries.push_back(r);
             }
