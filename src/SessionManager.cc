@@ -496,7 +496,7 @@ void SessionManager::findExitVolume()
 
 void SessionManager::saveParticle(const G4String &particle, double energy, double time, double *PosDir)
 {
-    if (bBinaryOutput)
+    if (bExitBinary)
     {
         *outStreamExit << char(0xFF);
         *outStreamExit << particle << char(0x00);
@@ -707,6 +707,7 @@ void SessionManager::ReadConfig(const std::string &ConfigFileName)
         json11::Json jsExit = jo["SaveExitParticles"].object_items();
 
         bExitParticles   = jsExit["Enabled"].bool_value();
+        bExitBinary      = jsExit["UseBinary"].bool_value();
         bExitTimeWindow  = jsExit["UseTimeWindow"].bool_value();
         bExitKill        = jsExit["StopTrack"].bool_value();
 
@@ -812,7 +813,7 @@ void SessionManager::prepareOutputExitStream()
 {
     outStreamExit = new std::ofstream();
 
-    if (bBinaryOutput)
+    if (bExitBinary)
         outStreamExit->open(FileName_Exit, std::ios::out | std::ios::binary);
     else
         outStreamExit->open(FileName_Exit);

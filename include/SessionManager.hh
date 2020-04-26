@@ -97,6 +97,7 @@ public:
         bool bStoppedOnMonitor = false; // bug fix for Geant4? used in (Monitor)SensitiveDetector and SteppingAction
 
         bool bExitParticles = false;
+        bool bExitBinary = false;
         G4LogicalVolume * ExitVolume = nullptr;
         bool   bExitTimeWindow = false;
         double ExitTimeFrom = 0;
