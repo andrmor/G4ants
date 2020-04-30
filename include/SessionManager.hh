@@ -97,7 +97,6 @@ public:
         bool bStoppedOnMonitor = false; // bug fix for Geant4? used in (Monitor)SensitiveDetector and SteppingAction
 
         bool bExitParticles = false;
-        bool bExitBinary = false;
         G4LogicalVolume * ExitVolume = nullptr;
         bool   bExitTimeWindow = false;
         double ExitTimeFrom = 0;
@@ -145,6 +144,7 @@ private:
         std::vector<ParticleRecord> GeneratedPrimaries;
         bool bGuiMode = false;
 
+        bool bExitBinary = false;
         bool bBinaryOutput = false;
 
         std::vector<MonitorSensitiveDetector*> Monitors; //can contain nullptr!

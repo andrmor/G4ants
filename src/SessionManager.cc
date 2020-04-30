@@ -271,8 +271,7 @@ int SessionManager::findMaterial(const std::string &materialName)
 
 void SessionManager::writeNewEventMarker()
 {
-    int iEvent;
-    if (bBinaryOutput) iEvent = std::stoi( EventId.substr(1) );  // kill leading '#'
+    const int iEvent = std::stoi( EventId.substr(1) );  // kill leading '#'
 
     if (outStreamDeposition)
     {
@@ -299,7 +298,7 @@ void SessionManager::writeNewEventMarker()
 
     if (outStreamExit)
     {
-        if (bBinaryOutput)
+        if (bExitBinary)
         {
             *outStreamExit << char(0xEE);
              outStreamExit->write((char*)&iEvent, sizeof(int));
@@ -720,6 +719,7 @@ void SessionManager::ReadConfig(const std::string &ConfigFileName)
         if (bExitParticles)
             std::cout << "Save exit particles enabled for volume: " << ExitVolumeName << "  Kill on exit? " << bExitKill << std::endl;
     }
+    std::cout << "Save exit particles? " << bExitParticles << " Binary file? " << bExitBinary << std::endl;
 
     NumEventsToDo = jo["NumEvents"].int_value();
 
