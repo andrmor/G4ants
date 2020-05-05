@@ -3,6 +3,7 @@
 #include <iostream>
 #include <sstream>
 #include <fstream>
+#include <iomanip>
 #include <map>
 
 #include "G4ParticleDefinition.hh"
@@ -17,12 +18,19 @@ SessionManager &SessionManager::getInstance()
     return instance;
 }
 
-SessionManager::SessionManager() {}
+SessionManager::SessionManager()
+{
+    std::vector<std::string> allElements = {"H","He","Li","Be","B","C","N","O","F","Ne","Na","Mg","Al","Si","P","S","Cl","Ar","K","Ca","Sc","Ti","V","Cr","Mn","Fe","Co","Ni","Cu","Zn","Ga","Ge","As","Se","Br","Kr","Rb","Sr","Y","Zr","Nb","Mo","Tc","Ru","Rh","Pd","Ag","Cd","In","Sn","Sb","Te","I","Xe","Cs","Ba","La","Ce","Pr","Nd","Pm","Sm","Eu","Gd","Tb","Dy","Ho","Er","Tm","Yb","Lu","Hf","Ta","W","Re","Os","Ir","Pt","Au","Hg","Tl","Pb","Bi","Po","At","Rn","Fr","Ra","Ac","Th","Pa","U","Np","Pu","Am","Cm","Bk","Cf","Es","Fm","Md","No","Lr","Rf","Db","Sg","Bh","Hs"};
+
+    for (size_t i = 0; i < allElements.size(); i++)
+        ElementToZ.emplace( std::make_pair(allElements[i], i+1) );
+}
 
 SessionManager::~SessionManager()
 {
+    delete outStreamExit;
     delete outStreamDeposition;
-    delete outStreamTracks;
+    delete outStreamHistory;
     delete inStreamPrimaries;
 }
 
@@ -31,6 +39,9 @@ void SessionManager::startSession()
     //populate particle collection
     prepareParticleCollection();
 
+    //prepare monitors: populate particle pointers
+    prepareMonitors();
+
     // opening file with primaries
     prepareInputStream();
 
@@ -38,7 +49,10 @@ void SessionManager::startSession()
     prepareOutputDepoStream();
 
     // preparing ouptut for track export
-    if (CollectHistory != NotCollecting) prepareOutputTracks();
+    if (CollectHistory != NotCollecting) prepareOutputHistoryStream();
+
+    // preparing ouptut for exiting particle export
+    if (bExitParticles) prepareOutputExitStream();
 
     //set random generator. The seed was provided in the config file
     CLHEP::RanecuEngine* randGen = new CLHEP::RanecuEngine();
@@ -46,6 +60,8 @@ void SessionManager::startSession()
     G4Random::setTheEngine(randGen);
 
     executeAdditionalCommands();
+
+    findExitVolume();
 }
 
 void SessionManager::terminateSession(const std::string & ReturnMessage)
@@ -63,6 +79,8 @@ void SessionManager::endSession()
 {
     bError = false;
     ErrorMessage.clear();
+
+    storeMonitorsData();
 
     generateReceipt();
 }
@@ -105,34 +123,119 @@ std::vector<ParticleRecord> &SessionManager::getNextEventPrimaries()
 {
     GeneratedPrimaries.clear();
 
-    for( std::string line; getline( *inStreamPrimaries, line ); )
+    if (bG4antsPrimaries)
     {
-        //std::cout << line << std::endl;
-        if (line.size() < 1) continue; //allow empty lines
-
-        if (line[0] == '#')
+        if (bBinaryPrimaries)
         {
-            NextEventId = line;
-            break; //event finished
+            int eventId;
+            std::string pn;
+            char ch;
+            while (inStreamPrimaries->get(ch))
+            {
+                if (inStreamPrimaries->eof()) break;
+
+                if (ch == (char)0xEE)
+                {
+                    inStreamPrimaries->read((char*)&eventId, sizeof(int));
+                    NextEventId = '#' + std::to_string(eventId);
+                    break; //event finished
+                }
+                else if (ch == (char)0xFF)
+                {
+                    pn.clear();
+                    while (inStreamPrimaries->get(ch))
+                    {
+                        if (ch == (char)0x00) break;
+                        pn += ch;
+                    }
+
+                    ParticleRecord r;
+                    r.Particle = findGeant4Particle(pn); // terminates session if not found
+                    inStreamPrimaries->read((char*)&r.Energy,       sizeof(double));
+                    inStreamPrimaries->read((char*)&r.Position[0],  sizeof(double));
+                    inStreamPrimaries->read((char*)&r.Position[1],  sizeof(double));
+                    inStreamPrimaries->read((char*)&r.Position[2],  sizeof(double));
+                    inStreamPrimaries->read((char*)&r.Direction[0], sizeof(double));
+                    inStreamPrimaries->read((char*)&r.Direction[1], sizeof(double));
+                    inStreamPrimaries->read((char*)&r.Direction[2], sizeof(double));
+                    inStreamPrimaries->read((char*)&r.Time,         sizeof(double));
+
+                    //std::cout << pn << " -> " << r.Particle->GetParticleName() << " time="<< r.Time << std::endl;
+
+                    GeneratedPrimaries.push_back(r);
+                }
+            }
         }
+        else
+        {
+            for( std::string line; getline( *inStreamPrimaries, line ); )
+            {
+                //std::cout << line << std::endl;
+                if (line.size() < 1) continue; //allow empty lines
 
-        ParticleRecord r;
-        int Id;
-        int numRead = std::sscanf(line.data(), "%d %lf %lf %lf %lf %lf %lf %lf %lf",
-                                  &Id,
-                                  &r.Energy,
-                                  &r.Position[0],  &r.Position[1],  &r.Position[2],
-                                  &r.Direction[0], &r.Direction[1], &r.Direction[2],
-                                  &r.Time);
-        if (numRead != 9)
-            terminateSession("Unexpected format of file with primaries");
+                if (line[0] == '#')
+                {
+                    NextEventId = line;
+                    break; //event finished
+                }
 
-        if (Id >= 0 || Id < (int)ParticleCollection.size() )
-            r.Particle = ParticleCollection[Id];
-        if (!r.Particle)
-            terminateSession("Use of unknown particle index");
+                ParticleRecord r;
+                std::string particleName;
+                std::stringstream ss(line);
+                ss >> particleName
+                   >> r.Energy >> r.Position[0] >> r.Position[1]  >> r.Position[2]
+                   >> r.Direction[0] >> r.Direction[1] >> r.Direction[2]
+                   >> r.Time;
+/*
+                int numRead = std::sscanf(line.data(), "%s %lf %lf %lf %lf %lf %lf %lf %lf",
+                                          &particleName,
+                                          &r.Energy,
+                                          &r.Position[0],  &r.Position[1],  &r.Position[2],
+                                          &r.Direction[0], &r.Direction[1], &r.Direction[2],
+                                          &r.Time);
+                if (numRead != 9)
+                    terminateSession("Unexpected format of file with primaries");
+                */
 
-        GeneratedPrimaries.push_back( r );
+                r.Particle = findGeant4Particle(particleName); // terminates session if not found
+
+                //std::cout << particleName << " -> " << r.Particle->GetParticleName() << " time="<< r.Time << std::endl;
+
+                GeneratedPrimaries.push_back(r);
+            }
+        }
+    }
+    else
+    {
+        for( std::string line; getline( *inStreamPrimaries, line ); )
+        {
+            //std::cout << line << std::endl;
+            if (line.size() < 1) continue; //allow empty lines
+
+            if (line[0] == '#')
+            {
+                NextEventId = line;
+                break; //event finished
+            }
+
+            ParticleRecord r;
+            int Id;
+            int numRead = std::sscanf(line.data(), "%d %lf %lf %lf %lf %lf %lf %lf %lf",
+                                      &Id,
+                                      &r.Energy,
+                                      &r.Position[0],  &r.Position[1],  &r.Position[2],
+                                      &r.Direction[0], &r.Direction[1], &r.Direction[2],
+                                      &r.Time);
+            if (numRead != 9)
+                terminateSession("Unexpected format of file with primaries");
+
+            if (Id >= 0 || Id < (int)ParticleCollection.size() )
+                r.Particle = ParticleCollection[Id];
+            if (!r.Particle)
+                terminateSession("Use of unknown particle index");
+
+            GeneratedPrimaries.push_back( r );
+        }
     }
 
     return GeneratedPrimaries;
@@ -166,32 +269,253 @@ int SessionManager::findMaterial(const std::string &materialName)
     return it->second;
 }
 
-void SessionManager::sendLineToDepoOutput(const std::string & text)
+void SessionManager::writeNewEventMarker()
+{
+    const int iEvent = std::stoi( EventId.substr(1) );  // kill leading '#'
+
+    if (outStreamDeposition)
+    {
+        if (bBinaryOutput)
+        {
+            *outStreamDeposition << char(0xEE);
+             outStreamDeposition->write((char*)&iEvent, sizeof(int));
+        }
+        else
+            *outStreamDeposition << EventId.data() << std::endl;
+    }
+
+    if (CollectHistory != SessionManager::NotCollecting)
+        if (outStreamHistory)
+        {
+            if (bBinaryOutput)
+            {
+                *outStreamHistory << char(0xEE);
+                 outStreamHistory->write((char*)&iEvent, sizeof(int));
+            }
+            else
+                *outStreamHistory << EventId.data() << std::endl;
+        }
+
+    if (outStreamExit)
+    {
+        if (bExitBinary)
+        {
+            *outStreamExit << char(0xEE);
+             outStreamExit->write((char*)&iEvent, sizeof(int));
+        }
+        else
+            *outStreamExit << EventId.data() << std::endl;
+    }
+}
+
+void SessionManager::saveDepoRecord(int iPart, int iMat, double edep, double *pos, double time)
 {
     if (!outStreamDeposition) return;
 
-    *outStreamDeposition << text.data() << std::endl;
+    // format:
+    // partId matId DepoE X Y Z Time
+
+    if (bBinaryOutput)
+    {
+        *outStreamDeposition << char(0xFF);
+
+        outStreamDeposition->write((char*)&iPart,   sizeof(int));
+        outStreamDeposition->write((char*)&iMat,    sizeof(int));
+        outStreamDeposition->write((char*)&edep,    sizeof(double));
+        outStreamDeposition->write((char*)pos,    3*sizeof(double));
+        outStreamDeposition->write((char*)&time,    sizeof(double));
+    }
+    else
+    {
+        std::stringstream ss;
+        ss.precision(Precision);
+
+        ss << iPart << ' ';
+        ss << iMat << ' ';
+        ss << edep << ' ';
+        ss << pos[0] << ' ' << pos[1] << ' ' << pos[2] << ' ';
+        ss << time;
+
+        *outStreamDeposition << ss.rdbuf() << std::endl;
+    }
 }
 
-void SessionManager::sendLineToDepoOutput(const std::stringstream & text)
+void SessionManager::saveTrackStart(int trackID, int parentTrackID,
+                                    const G4String & particleName,
+                                    const G4ThreeVector & pos, double time, double kinE,
+                                    int iMat, const std::string &volName, int volIndex)
 {
-    if (!outStreamDeposition) return;
+    if (!outStreamHistory) return;
 
-    *outStreamDeposition << text.rdbuf() << std::endl;
+    if (bBinaryOutput)
+    {
+        //format:
+        //F0 trackId(int) parentTrackId(int) PartName(string) 0 X(double) Y(double) Z(double) time(double) kinEnergy(double) NextMat(int) NextVolNmae(string) 0 NextVolIndex(int)
+        *outStreamHistory << char(0xF0);
+
+        outStreamHistory->write((char*)&trackID,       sizeof(int));
+        outStreamHistory->write((char*)&parentTrackID, sizeof(int));
+
+        *outStreamHistory << particleName << char(0x00);
+
+        double posArr[3];
+        posArr[0] = pos.x();
+        posArr[1] = pos.y();
+        posArr[2] = pos.z();
+        outStreamHistory->write((char*)posArr,  3*sizeof(double));
+        outStreamHistory->write((char*)&time,     sizeof(double));
+        outStreamHistory->write((char*)&kinE,     sizeof(double));
+
+        outStreamHistory->write((char*)&iMat,     sizeof(int));
+        *outStreamHistory << volName << char(0x00);
+        outStreamHistory->write((char*)&volIndex, sizeof(int));
+    }
+    else
+    {
+        // format:
+        // > TrackID ParentTrackID Particle X Y Z Time E iMat VolName VolIndex
+
+        std::stringstream ss;
+        ss.precision(Precision);
+
+        ss << '>';
+        ss << trackID << ' ';
+        ss << parentTrackID << ' ';
+        ss << particleName << ' ';
+        ss << pos[0] << ' ' << pos[1] << ' ' << pos[2] << ' ';
+        ss << time << ' ';
+        ss << kinE << ' ';
+        ss << iMat << ' ';
+        ss << volName << ' ';
+        ss << volIndex;
+
+        *outStreamHistory << ss.rdbuf() << std::endl;
+    }
+
 }
 
-void SessionManager::sendLineToTracksOutput(const std::string &text)
+void SessionManager::saveTrackRecord(const std::string & procName,
+                                     const G4ThreeVector & pos, double time,
+                                     double kinE, double depoE,
+                                     const std::vector<int> * secondaries,
+                                     int iMatTo, const std::string & volNameTo, int volIndexTo)
 {
-    if (!outStreamTracks) return;
+    if (!outStreamHistory) return;
 
-    *outStreamTracks << text.data() << std::endl;
+    // format for "T" processes:
+    // ascii: ProcName  X Y Z Time KinE DirectDepoE iMatTo VolNameTo  VolIndexTo [secondaries] \n
+    // bin:   [FF or F8] ProcName0 X Y Z Time KinE DirectDepoE iMatTo VolNameTo0 VolIndexTo numSec [secondaries]
+    // for non-"T" process, iMatTo VolNameTo  VolIndexTo are absent
+    // not that if energy depo is present on T step, it is in the previous volume!
+    if (bBinaryOutput)
+    {
+        *outStreamHistory << char( iMatTo == -1 ? 0xFF    // not a transportation step
+                                                : 0xF8 ); // transportation step, next volume/material is saved too
+
+        *outStreamHistory << procName << char(0x00);
+
+        double posArr[3];
+        posArr[0] = pos.x();
+        posArr[1] = pos.y();
+        posArr[2] = pos.z();
+        outStreamHistory->write((char*)posArr,  3*sizeof(double));
+        outStreamHistory->write((char*)&time,     sizeof(double));
+
+        outStreamHistory->write((char*)&kinE,     sizeof(double));
+        outStreamHistory->write((char*)&depoE,    sizeof(double));
+
+        if (iMatTo != -1)
+        {
+            outStreamHistory->write((char*)&iMatTo,     sizeof(int));
+            *outStreamHistory << volNameTo << char(0x00);
+            outStreamHistory->write((char*)&volIndexTo, sizeof(int));
+        }
+
+        int numSec = (secondaries ? secondaries->size() : 0);
+        outStreamHistory->write((char*)&numSec, sizeof(int));
+        if (secondaries)
+        {
+            for (const int & iSec : *secondaries)
+                outStreamHistory->write((char*)&iSec, sizeof(int));
+        }
+    }
+    else
+    {
+        std::stringstream ss;
+        ss.precision(Precision);
+
+        ss << procName << ' ';
+
+        ss << pos[0] << ' ' << pos[1] << ' ' << pos[2] << ' ';
+        ss << time << ' ';
+
+        ss << kinE << ' ';
+        ss << depoE;
+
+        if (iMatTo != -1)
+        {
+            ss << ' ';
+            ss << iMatTo << ' ';
+            ss << volNameTo << ' ';
+            ss << volIndexTo;
+        }
+
+        if (secondaries)
+        {
+            for (const int & isec : *secondaries)
+                ss << ' ' << isec;
+        }
+
+        *outStreamHistory << ss.rdbuf() << std::endl;
+    }
 }
 
-void SessionManager::sendLineToTracksOutput(const std::stringstream &text)
+#include "G4LogicalVolumeStore.hh"
+#include "G4LogicalVolume.hh"
+void SessionManager::findExitVolume()
 {
-    if (!outStreamTracks) return;
+    if (!bExitParticles) return;
 
-    *outStreamTracks << text.rdbuf() << std::endl;
+    G4LogicalVolumeStore* lvs = G4LogicalVolumeStore::GetInstance();
+
+    std::vector<G4LogicalVolume*>::const_iterator lvciter;
+    for (lvciter = lvs->begin(); lvciter != lvs->end(); ++lvciter)
+    {
+        if ( (std::string)(*lvciter)->GetName() == ExitVolumeName)
+        {
+            ExitVolume = *lvciter;
+            std::cout << "Found exit volume " << ExitVolume << " --> " << ExitVolume->GetName().data() << std::endl;
+            return;
+        }
+    }
+
+    //not found
+    bExitParticles = false;
+}
+
+void SessionManager::saveParticle(const G4String &particle, double energy, double time, double *PosDir)
+{
+    if (bExitBinary)
+    {
+        *outStreamExit << char(0xFF);
+        *outStreamExit << particle << char(0x00);
+        outStreamExit->write((char*)&energy,  sizeof(double));
+        outStreamExit->write((char*)PosDir, 6*sizeof(double));
+        outStreamExit->write((char*)&time,    sizeof(double));
+    }
+    else
+    {
+        std::stringstream ss;
+        ss.precision(Precision);
+
+        ss << particle << ' ';
+        ss << energy << ' ';
+        ss << PosDir[0] << ' ' << PosDir[1] << ' ' << PosDir[2] << ' ';     //position
+        ss << PosDir[3] << ' ' << PosDir[4] << ' ' << PosDir[5] << ' ';     //direction
+        ss << time;
+
+        *outStreamExit << ss.rdbuf() << std::endl;
+    }
 }
 
 void SessionManager::prepareParticleCollection()
@@ -235,6 +559,16 @@ void SessionManager::prepareParticleCollection()
     }
 }
 
+#include "SensitiveDetector.hh"
+void SessionManager::prepareMonitors()
+{
+    for (MonitorSensitiveDetector * m : Monitors)
+    {
+        if (!m->ParticleName.empty())
+            m->pParticleDefinition = G4ParticleTable::GetParticleTable()->FindParticle(m->ParticleName);
+    }
+}
+
 void SessionManager::ReadConfig(const std::string &ConfigFileName)
 {
     //opening config file
@@ -263,6 +597,10 @@ void SessionManager::ReadConfig(const std::string &ConfigFileName)
     if (PhysicsList.empty())
         terminateSession("Reference physics list is not provided");
 
+    bG4antsPrimaries = false;
+    if (jo.object_items().count("Primaries_G4ants") != 0) bG4antsPrimaries = jo["Primaries_G4ants"].bool_value();
+    bBinaryPrimaries = false;
+    if (jo.object_items().count("Primaries_Binary") != 0) bBinaryPrimaries = jo["Primaries_Binary"].bool_value();
     //extracting name of the file with primaries to generate
     FileName_Input = jo["File_Primaries"].string_value();
     if (FileName_Input.empty())
@@ -272,6 +610,11 @@ void SessionManager::ReadConfig(const std::string &ConfigFileName)
     FileName_Output = jo["File_Deposition"].string_value();
     if (FileName_Output.empty())
         terminateSession("File name for deposition output was not provided");
+
+    //extracting name of the monitor output
+    FileName_Monitors = jo["File_Monitors"].string_value();
+    //if (FileName_Monitors.empty())
+    //    terminateSession("File name for monitor data output was not provided");
 
     //read list of sensitive volumes - they will be linked to SensitiveDetector
     std::vector<json11::Json> arSV = jo["SensitiveVolumes"].array_items();
@@ -351,6 +694,33 @@ void SessionManager::ReadConfig(const std::string &ConfigFileName)
 
     bGuiMode = jo["GuiMode"].bool_value();
 
+    if (jo.object_items().count("BinaryOutput") == 0)
+        bBinaryOutput = false;
+    else
+        bBinaryOutput = jo["BinaryOutput"].bool_value();
+    std::cout << "Binary output? " << bBinaryOutput << std::endl;
+
+    if (jo.object_items().count("SaveExitParticles") == 0) bExitParticles = false;
+    else
+    {
+        json11::Json jsExit = jo["SaveExitParticles"].object_items();
+
+        bExitParticles   = jsExit["Enabled"].bool_value();
+        bExitBinary      = jsExit["UseBinary"].bool_value();
+        bExitTimeWindow  = jsExit["UseTimeWindow"].bool_value();
+        bExitKill        = jsExit["StopTrack"].bool_value();
+
+        FileName_Exit    = jsExit["FileName"].string_value();
+        ExitVolumeName   = jsExit["VolumeName"].string_value();
+
+        ExitTimeFrom     = jsExit["TimeFrom"].number_value();
+        ExitTimeTo       = jsExit["TimeTo"].number_value();
+
+        if (bExitParticles)
+            std::cout << "Save exit particles enabled for volume: " << ExitVolumeName << "  Kill on exit? " << bExitKill << std::endl;
+    }
+    std::cout << "Save exit particles? " << bExitParticles << " Binary file? " << bExitBinary << std::endl;
+
     NumEventsToDo = jo["NumEvents"].int_value();
 
     bool bBuildTracks = jo["BuildTracks"].bool_value();
@@ -365,17 +735,50 @@ void SessionManager::ReadConfig(const std::string &ConfigFileName)
     else CollectHistory = NotCollecting;
 
     Precision = jo["Precision"].int_value();
+
+    if (!FileName_Monitors.empty()) //compatibility while the corresponding ANTS version is not on master
+    {
+        std::vector<json11::Json> MonitorArray = jo["Monitors"].array_items();
+        for (size_t i=0; i<MonitorArray.size(); i++)
+        {
+            const json11::Json & mjs = MonitorArray[i];
+            std::string Name = mjs["Name"].string_value();
+            MonitorSensitiveDetector * mobj = new MonitorSensitiveDetector(Name);
+            mobj->readFromJson(mjs);
+            Monitors.push_back(mobj);
+            if (!mobj->bAcceptDirect || !mobj->bAcceptIndirect) bMonitorsRequireSteppingAction = true;
+        }
+        std::cout << "Monitors require stepping action: " << bMonitorsRequireSteppingAction << std::endl;
+    }
 }
 
 void SessionManager::prepareInputStream()
 {
-    inStreamPrimaries = new std::ifstream(FileName_Input);
-    if (!inStreamPrimaries->is_open())
-        terminateSession("Cannot open file with primaries to generate");
+    if (bG4antsPrimaries && bBinaryPrimaries)
+    {
+        inStreamPrimaries = new std::ifstream(FileName_Input, std::ios::in | std::ios::binary);
+        if (!inStreamPrimaries->is_open()) terminateSession("Cannot open binary file with primaries");
 
-    getline( *inStreamPrimaries, EventId );
-    if (EventId.size()<2 || EventId[0] != '#')
-        terminateSession("Unexpected format of the file with primaries");
+        int eventId;
+        char ch = (char)0x00;
+        inStreamPrimaries->get(ch);
+        if (ch == (char)0xEE)
+        {
+            inStreamPrimaries->read((char*)&eventId, sizeof(int));
+            EventId = '#' + std::to_string(eventId);
+        }
+
+        if (ch != (char)0xEE || inStreamPrimaries->fail())
+            terminateSession("Unexpected format of the binary file with primaries");
+    }
+    else
+    {
+        inStreamPrimaries = new std::ifstream(FileName_Input);
+        if (!inStreamPrimaries->is_open()) terminateSession("Cannot open file with primaries");
+
+        getline( *inStreamPrimaries, EventId );
+        if (EventId.size()<2 || EventId[0] != '#') terminateSession("Unexpected format of the file with primaries");
+    }
 
     std::cout << EventId << std::endl;
 }
@@ -383,17 +786,40 @@ void SessionManager::prepareInputStream()
 void SessionManager::prepareOutputDepoStream()
 {
     outStreamDeposition = new std::ofstream();
-    outStreamDeposition->open(FileName_Output);
+
+    if (bBinaryOutput)
+        outStreamDeposition->open(FileName_Output, std::ios::out | std::ios::binary);
+    else
+        outStreamDeposition->open(FileName_Output);
+
     if (!outStreamDeposition->is_open())
         terminateSession("Cannot open file to store deposition data");
 }
 
-void SessionManager::prepareOutputTracks()
+void SessionManager::prepareOutputHistoryStream()
 {
-    outStreamTracks = new std::ofstream();
-    outStreamTracks->open(FileName_Tracks);
-    if (!outStreamTracks->is_open())
-        terminateSession("Cannot open file to export tracks data");
+    outStreamHistory = new std::ofstream();
+
+    if (bBinaryOutput)
+        outStreamHistory->open(FileName_Tracks, std::ios::out | std::ios::binary);
+    else
+        outStreamHistory->open(FileName_Tracks);
+
+    if (!outStreamHistory->is_open())
+        terminateSession("Cannot open file to export history/tracks data");
+}
+
+void SessionManager::prepareOutputExitStream()
+{
+    outStreamExit = new std::ofstream();
+
+    if (bExitBinary)
+        outStreamExit->open(FileName_Exit, std::ios::out | std::ios::binary);
+    else
+        outStreamExit->open(FileName_Exit);
+
+    if (!outStreamExit->is_open())
+        terminateSession("Cannot open file to export exiting particle data");
 }
 
 void SessionManager::executeAdditionalCommands()
@@ -427,4 +853,109 @@ void SessionManager::generateReceipt()
     if (outStream.is_open())
         outStream << json_str << std::endl;
     outStream.close();
+}
+
+void SessionManager::storeMonitorsData()
+{
+    json11::Json::array Arr;
+
+    for (MonitorSensitiveDetector * mon : Monitors)
+    {
+        json11::Json::object json;
+        mon->writeToJson(json);
+        Arr.push_back(json);
+    }
+
+    std::ofstream outStream;
+    outStream.open(FileName_Monitors);
+    if (outStream.is_open())
+    {
+        std::string json_str = json11::Json(Arr).dump();
+        outStream << json_str << std::endl;
+    }
+    outStream.close();
+}
+
+#include "G4SystemOfUnits.hh"
+G4ParticleDefinition * SessionManager::findGeant4Particle(const std::string & particleName)
+{
+    G4ParticleDefinition * Particle = G4ParticleTable::GetParticleTable()->FindParticle(particleName);
+
+    if (!Particle)
+    {
+        // is it an ion?
+        int Z, A;
+        double E;
+        bool ok = extractIonInfo(particleName, Z, A, E);
+        if (!ok)
+            terminateSession("Found an unknown particle: " + particleName);
+
+        Particle = G4ParticleTable::GetParticleTable()->GetIonTable()->GetIon(Z, A, E*keV);
+
+        if (!Particle)
+            terminateSession("Failed to generate ion: " + particleName);
+
+        //std::cout << particleName << "   ->   " << Particle->GetParticleName() << std::endl;
+    }
+
+    return Particle;
+}
+
+bool SessionManager::extractIonInfo(const std::string & text, int & Z, int & A, double & E)
+{
+    size_t size = text.length();
+    if (size < 2) return false;
+
+    // -- extracting Z --
+    const char & c0 = text[0];
+    if (c0 < 'A' || c0 > 'Z') return false;
+    std::string symbol;
+    symbol += c0;
+
+    size_t index = 1;
+    const char & c1 = text[1];
+    if (c1 >= 'a' && c1 <= 'z')
+    {
+        symbol += c1;
+        index++;
+    }
+    try
+    {
+        Z = ElementToZ.at(symbol);
+    }
+    catch (...)
+    {
+        return false;
+    }
+
+    // -- extracting A --
+    A = 0; E = 0;
+    char ci;
+    while (index < size)
+    {
+        ci = text[index];
+        if (ci < '0' || ci > '9') break;
+        A = A*10 + (int)ci - (int)'0';
+        index++;
+    }
+    if (A == 0) return false;
+
+    if (index == size) return true;
+
+    // -- extracting excitation energy --
+    if (ci != '[') return false;
+    index++;
+    std::stringstream energy;
+    while (index < size)
+    {
+        ci = text[index];
+        if (ci == ']')
+        {
+            energy >> E;
+            return !energy.fail();
+        }
+        energy << ci;
+        index++;
+    }
+    return false;
 }

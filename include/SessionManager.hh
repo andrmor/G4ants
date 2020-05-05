@@ -12,6 +12,8 @@
 
 class G4ParticleDefinition;
 class G4StepPoint;
+class MonitorSensitiveDetector;
+class G4LogicalVolume;
 
 struct ParticleRecord
 {
@@ -52,19 +54,32 @@ class SessionManager
         std::vector<ParticleRecord> & getNextEventPrimaries();
         bool isEndOfInputFileReached() const;
         const std::vector<std::string> & getListOfSensitiveVolumes() const {return SensitiveVolumes;}
+        std::vector<MonitorSensitiveDetector*> & getMonitors() {return Monitors;}
         const std::map<std::string, double> & getStepLimitMap() const {return StepLimitMap;}
         int findParticle(const std::string & particleName);  // change to pointer search?
         int findMaterial(const std::string & materialName);  // change to pointer search?
 
-        void sendLineToDepoOutput(const std::string & text);
-        void sendLineToDepoOutput(const std::stringstream & text);
+        void writeNewEventMarker();
 
-        void sendLineToTracksOutput(const std::string & text);
-        void sendLineToTracksOutput(const std::stringstream & text);
+        void saveDepoRecord(int iPart, int iMat, double edep, double * pos, double time);
+
+        void saveTrackStart(int trackID, int parentTrackID,
+                            const G4String & particleName,
+                            const G4ThreeVector & pos, double time, double kinE,
+                            int iMat, const std::string &volName, int volIndex);
+        void saveTrackRecord(const std::string & procName,
+                             const G4ThreeVector & pos, double time,
+                             double kinE, double depoE,
+                             const std::vector<int> *secondaries = nullptr,
+                             int iMatTo = -1, const std::string &volNameTo = "", int volIndexTo = -1);
 
         void resetPredictedTrackID() {NextTrackID = 1;}
         void incrementPredictedTrackID() {NextTrackID++;}
         int  getPredictedTrackID() {return NextTrackID;}
+
+        void findExitVolume();
+
+        void saveParticle(const G4String & particle, double energy, double time, double * PosDir);
 
 public:
         //runtime
@@ -77,21 +92,39 @@ public:
 
         int Precision    = 6;
 
-    private:
+        bool bMonitorsRequireSteppingAction = false;
+
+        bool bStoppedOnMonitor = false; // bug fix for Geant4? used in (Monitor)SensitiveDetector and SteppingAction
+
+        bool bExitParticles = false;
+        G4LogicalVolume * ExitVolume = nullptr;
+        bool   bExitTimeWindow = false;
+        double ExitTimeFrom = 0;
+        double ExitTimeTo = 1.0e6;
+        bool   bExitKill = true;
+
+private:
         void prepareParticleCollection();
+        void prepareMonitors();
         void prepareInputStream();
         void prepareOutputDepoStream();
-        void prepareOutputTracks();
+        void prepareOutputHistoryStream();
+        void prepareOutputExitStream();
         void executeAdditionalCommands();
         void generateReceipt();
+        void storeMonitorsData();
+
+        G4ParticleDefinition * findGeant4Particle(const std::string & particleName);
+        bool extractIonInfo(const std::string & text, int & Z, int & A, double & E);
 
     private:
         std::string FileName_Input;
         std::string FileName_Output;
+        std::string FileName_Monitors;
         std::string FileName_Receipt;
         std::string FileName_Tracks;
         long Seed = 0;
-        std::string EventId;
+        std::string EventId; //  "#number"
         std::string NextEventId;
         std::string GDML;
         std::string PhysicsList;
@@ -102,11 +135,22 @@ public:
         std::vector<std::string> SensitiveVolumes;
         std::vector<std::string> OnStartCommands;
         std::map<std::string, double> StepLimitMap;
-        std::ifstream * inStreamPrimaries = 0;
-        std::ofstream * outStreamDeposition = 0;
-        std::ofstream * outStreamTracks = 0;
+        bool bG4antsPrimaries = false;
+        bool bBinaryPrimaries = false;
+        std::ifstream * inStreamPrimaries   = nullptr;
+        std::ofstream * outStreamDeposition = nullptr;
+        std::ofstream * outStreamHistory    = nullptr;
+        std::ofstream * outStreamExit       = nullptr;
         std::vector<ParticleRecord> GeneratedPrimaries;
         bool bGuiMode = false;
+
+        bool bExitBinary = false;
+        bool bBinaryOutput = false;
+
+        std::vector<MonitorSensitiveDetector*> Monitors; //can contain nullptr!
+
+        std::string FileName_Exit;
+        std::string ExitVolumeName;
 
         int EventsDone = 0;
         int NumEventsToDo = 0;
@@ -121,6 +165,8 @@ public:
         bool bError;
         std::string ErrorMessage;
         std::vector<std::string> WarningMessages;
+
+        std::map<std::string, int> ElementToZ;
 };
 
 #endif // SESSIONMANAGER_H
