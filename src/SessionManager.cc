@@ -288,7 +288,7 @@ int SessionManager::findMaterial(const std::string &materialName)
 #include "G4SystemOfUnits.hh"
 bool SessionManager::activateNeutronThermalScatteringPhysics()
 {
-    if (bUseThermalScatteringNeutronPhysics) return false;
+    if (!bUseThermalScatteringNeutronPhysics) return false;
 
     // based on Hadr04 example of Geant4
 
@@ -714,7 +714,7 @@ void SessionManager::ReadConfig(const std::string &ConfigFileName)
     if (PhysicsList.empty()) terminateSession("Reference physics list is not provided");
 
     bUseThermalScatteringNeutronPhysics = false;
-    if (jo.object_items().count("ActivateThermalScattering") != 0) bG4antsPrimaries = jo["ActivateThermalScattering"].bool_value();
+    if (jo.object_items().count("ActivateThermalScattering") != 0) bUseThermalScatteringNeutronPhysics = jo["ActivateThermalScattering"].bool_value();
 
     bG4antsPrimaries = false;
     if (jo.object_items().count("Primaries_G4ants") != 0) bG4antsPrimaries = jo["Primaries_G4ants"].bool_value();
