@@ -14,6 +14,7 @@ class G4ParticleDefinition;
 class G4StepPoint;
 class MonitorSensitiveDetector;
 class G4LogicalVolume;
+class G4VPhysicalVolume;
 
 struct ParticleRecord
 {
@@ -58,6 +59,9 @@ class SessionManager
         const std::map<std::string, double> & getStepLimitMap() const {return StepLimitMap;}
         int findParticle(const std::string & particleName);  // change to pointer search?
         int findMaterial(const std::string & materialName);  // change to pointer search?
+
+        bool activateNeutronThermalScatteringPhysics();
+        void updateMaterials(G4VPhysicalVolume * worldPV);
 
         void writeNewEventMarker();
 
@@ -128,10 +132,12 @@ private:
         std::string NextEventId;
         std::string GDML;
         std::string PhysicsList;
+        bool        bUseThermalScatteringNeutronPhysics = false;
         std::vector<json11::Json> ParticleJsonArray;
         std::vector<G4ParticleDefinition*> ParticleCollection; // does not own
         std::map<std::string, int> ParticleMap;
         std::map<std::string, int> MaterialMap;
+        std::vector<std::pair<std::string, std::string>> MaterialsToOverrideWithStandard;
         std::vector<std::string> SensitiveVolumes;
         std::vector<std::string> OnStartCommands;
         std::map<std::string, double> StepLimitMap;

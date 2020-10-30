@@ -43,6 +43,8 @@ int main(int argc, char** argv)
     parser.Read(SM.getGDML(), false); //false - no validation
     // need to implement own G4excpetion-based handler class  ->  SM.terminateSession("Error parsing GDML file");
     runManager->SetUserInitialization(new DetectorConstruction(parser.GetWorldVolume()));
+    SM.updateMaterials(parser.GetWorldVolume()); // if present in config, indicated materials will be replaced with those from nist database
+    //runManager->PhysicsHasBeenModified();
 
     std::string pl = SM.getPhysicsList();
     G4VModularPhysicsList *          physicsList = nullptr;
@@ -77,6 +79,13 @@ int main(int argc, char** argv)
     UImanager->ApplyCommand("/run/initialize");
     UImanager->ApplyCommand("/control/verbose 0");
     UImanager->ApplyCommand("/run/verbose 0");
+
+    if (SM.activateNeutronThermalScatteringPhysics())
+    {
+        runManager->PhysicsHasBeenModified();
+        UImanager->ApplyCommand("/run/initialize"); //needed?
+    }
+
     if (bGui)
     {
         UImanager->ApplyCommand("/hits/verbose 2");
