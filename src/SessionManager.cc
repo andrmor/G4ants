@@ -377,7 +377,21 @@ void SessionManager::updateMaterials(G4VPhysicalVolume * worldPV)
             terminateSession("Material " + name + " cannot have the same name as the G4NistManager name");
             return;
         }
-        G4Material * newMat = man->FindOrBuildMaterial(G4Name);
+
+        G4Material * newMat = nullptr;
+
+        //is it custom G4ants override?
+        if (G4Name == "G4_Al_TS")
+        {
+            G4Element * alEle = new G4Element("TS_Aluminium_Metal", "Al", 13.0, 26.982*g/mole);
+            newMat = new G4Material(G4Name, 2.699*g/cm3, 1, kStateSolid);
+            newMat->AddElement(alEle, 1);
+        }
+        else
+        {
+            newMat = man->FindOrBuildMaterial(G4Name);
+        }
+
         if (!newMat)
         {
             terminateSession("Material " + G4Name + " is not listed in G4NistManager");
