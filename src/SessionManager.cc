@@ -269,6 +269,140 @@ int SessionManager::findMaterial(const std::string &materialName)
     return it->second;
 }
 
+#include "G4ProcessManager.hh"
+
+#include "G4HadronElasticProcess.hh"
+#include "G4NeutronHPElasticData.hh"
+#include "G4NeutronHPThermalScatteringData.hh"
+#include "G4NeutronHPElastic.hh"
+#include "G4NeutronHPThermalScattering.hh"
+#include "G4NeutronInelasticProcess.hh"
+#include "G4ParticleHPInelasticData.hh"
+#include "G4ParticleHPInelastic.hh"
+#include "G4HadronCaptureProcess.hh"
+#include "G4ParticleHPCaptureData.hh"
+#include "G4ParticleHPCapture.hh"
+#include "G4HadronFissionProcess.hh"
+#include "G4ParticleHPFissionData.hh"
+#include "G4ParticleHPFission.hh"
+#include "G4SystemOfUnits.hh"
+bool SessionManager::activateNeutronThermalScatteringPhysics()
+{
+    if (!bUseThermalScatteringNeutronPhysics) return false;
+
+    // based on Hadr04 example of Geant4
+
+    G4ParticleDefinition* neutron = G4Neutron::Neutron();
+    G4ProcessManager* pManager = neutron->GetProcessManager();
+    if (!pManager)
+    {
+        terminateSession("Process manager for neutron not found!");
+        return false;
+    }
+
+    // delete all neutron processes which are already registered
+    G4VProcess* process = nullptr;
+    process = pManager->GetProcess("hadElastic");       if (process) pManager->RemoveProcess(process);
+    process = pManager->GetProcess("neutronInelastic"); if (process) pManager->RemoveProcess(process);
+    process = pManager->GetProcess("nCapture");         if (process) pManager->RemoveProcess(process);
+    process = pManager->GetProcess("nFission");         if (process) pManager->RemoveProcess(process);
+
+    // (re) create process: elastic
+    G4HadronElasticProcess* process1 = new G4HadronElasticProcess();
+    pManager->AddDiscreteProcess(process1);
+    G4ParticleHPElastic*  model1a = new G4ParticleHPElastic();
+    model1a->SetMinEnergy(4*eV);
+    process1->RegisterMe(model1a);
+    process1->AddDataSet(new G4ParticleHPElasticData());
+    G4ParticleHPThermalScattering* model1b = new G4ParticleHPThermalScattering();
+    process1->RegisterMe(model1b);
+    process1->AddDataSet(new G4ParticleHPThermalScatteringData());
+
+    // (re) create process: inelastic
+    G4NeutronInelasticProcess* process2 = new G4NeutronInelasticProcess();
+    pManager->AddDiscreteProcess(process2);
+    G4ParticleHPInelasticData* dataSet2 = new G4ParticleHPInelasticData();
+    process2->AddDataSet(dataSet2);
+    G4ParticleHPInelastic* model2 = new G4ParticleHPInelastic();
+    process2->RegisterMe(model2);
+
+    // (re) create process: nCapture
+    G4HadronCaptureProcess* process3 = new G4HadronCaptureProcess();
+    pManager->AddDiscreteProcess(process3);
+    G4ParticleHPCaptureData* dataSet3 = new G4ParticleHPCaptureData();
+    process3->AddDataSet(dataSet3);
+    G4ParticleHPCapture* model3 = new G4ParticleHPCapture();
+    process3->RegisterMe(model3);
+
+    // (re) create process: nFission
+    G4HadronFissionProcess* process4 = new G4HadronFissionProcess();
+    pManager->AddDiscreteProcess(process4);
+    G4ParticleHPFissionData* dataSet4 = new G4ParticleHPFissionData();
+    process4->AddDataSet(dataSet4);
+    G4ParticleHPFission* model4 = new G4ParticleHPFission();
+    process4->RegisterMe(model4);
+
+    return true;
+}
+
+#include <QDebug>
+void replaceMaterialRecursive(G4LogicalVolume * volLV, const G4String & matName, G4Material * newMat)
+{
+    if (volLV->GetMaterial()->GetName() == matName)
+    {
+        qDebug() << "Replacing material for vol " << volLV->GetName();
+        volLV->SetMaterial(newMat);
+    }
+
+    for (int i = 0; i < volLV->GetNoDaughters(); i++)
+    {
+        G4VPhysicalVolume * daughter = volLV->GetDaughter(i);
+        G4LogicalVolume   * daughter_log = daughter->GetLogicalVolume();
+        replaceMaterialRecursive(daughter_log, matName, newMat);
+    }
+}
+
+#include "G4NistManager.hh"
+void SessionManager::updateMaterials(G4VPhysicalVolume * worldPV)
+{
+    G4LogicalVolume * worldLV = worldPV->GetLogicalVolume();
+
+    G4NistManager * man = G4NistManager::Instance();
+    for (auto & pair : MaterialsToOverrideWithStandard)
+    {
+        G4String name   = pair.first;
+        G4String G4Name = pair.second;
+        if (name == G4Name)
+        {
+            terminateSession("Material " + name + " cannot have the same name as the G4NistManager name");
+            return;
+        }
+
+        G4Material * newMat = nullptr;
+
+        //is it custom G4ants override?
+        if (G4Name == "G4_Al_TS")
+        {
+            G4Element * alEle = new G4Element("TS_Aluminium_Metal", "Al", 13.0, 26.982*g/mole);
+            newMat = new G4Material(G4Name, 2.699*g/cm3, 1, kStateSolid);
+            newMat->AddElement(alEle, 1);
+        }
+        else
+        {
+            newMat = man->FindOrBuildMaterial(G4Name);
+        }
+
+        if (!newMat)
+        {
+            terminateSession("Material " + G4Name + " is not listed in G4NistManager");
+            return;
+        }
+        replaceMaterialRecursive(worldLV, name, newMat);
+
+        MaterialMap[G4Name] = MaterialMap[name];
+    }
+}
+
 void SessionManager::writeNewEventMarker()
 {
     const int iEvent = std::stoi( EventId.substr(1) );  // kill leading '#'
@@ -581,21 +715,20 @@ void SessionManager::ReadConfig(const std::string &ConfigFileName)
 
     std::string err;
     json11::Json jo = json11::Json::parse(s, err);
-    if (!err.empty())
-        terminateSession(err);
+    if (!err.empty()) terminateSession(err);
 
     //extracting name of the receipt file - should be first so we can report back to the known receipt file!
     FileName_Receipt = jo["File_Receipt"].string_value();
-    if (FileName_Receipt.empty())
-        terminateSession("File name for receipt was not provided");
+    if (FileName_Receipt.empty()) terminateSession("File name for receipt was not provided");
 
     GDML = jo["GDML"].string_value();
-    if (GDML.empty())
-        terminateSession("GDML file name is not provided");
+    if (GDML.empty()) terminateSession("GDML file name is not provided");
 
     PhysicsList = jo["PhysicsList"].string_value();
-    if (PhysicsList.empty())
-        terminateSession("Reference physics list is not provided");
+    if (PhysicsList.empty()) terminateSession("Reference physics list is not provided");
+
+    bUseThermalScatteringNeutronPhysics = false;
+    if (jo.object_items().count("ActivateThermalScattering") != 0) bUseThermalScatteringNeutronPhysics = jo["ActivateThermalScattering"].bool_value();
 
     bG4antsPrimaries = false;
     if (jo.object_items().count("Primaries_G4ants") != 0) bG4antsPrimaries = jo["Primaries_G4ants"].bool_value();
@@ -670,6 +803,29 @@ void SessionManager::ReadConfig(const std::string &ConfigFileName)
         std::string name = j.string_value();
         std::cout << name << std::endl;
         MaterialMap[name] = (int)i;
+    }
+
+    //extracting materials which have to be overriden with G4 materials from G4NistManager
+    MaterialsToOverrideWithStandard.clear();
+    Marr = jo["MaterialsToRebuild"].array_items();
+    if (!Marr.empty())
+    {
+        std::cout << "The following materials will be constructed using G4NistManager:" << std::endl;
+        for (size_t i=0; i<Marr.size(); i++)
+        {
+            const json11::Json & el = Marr[i];
+            std::vector<json11::Json> par = el.array_items();
+            if (par.size() < 2)
+            {
+                terminateSession("MaterialsToRebuild json element should be array of arrays [[name, G4_name], ...]");
+                return;
+            }
+
+            std::string name   = par[0].string_value();
+            std::string G4Name = par[1].string_value();
+            std::cout << name << " -replace_with-> " << G4Name << std::endl;
+            MaterialsToOverrideWithStandard.push_back({name,G4Name});
+        }
     }
 
     //extracting step limits
