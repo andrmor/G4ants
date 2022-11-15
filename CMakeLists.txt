@@ -3,7 +3,7 @@
 #----------------------------------------------------------------------------
 # Setup the project
 #
-cmake_minimum_required(VERSION 2.6 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.5 FATAL_ERROR)
 project(G4ants)
 
 #----------------------------------------------------------------------------
@@ -24,6 +24,19 @@ endif()
 #
 include(${Geant4_USE_FILE})
 include_directories(${PROJECT_SOURCE_DIR}/include)
+
+execute_process (
+    COMMAND geant4-config --version
+    OUTPUT_VARIABLE Geant4_VERSION
+)
+message(${Geant4_VERSION})
+string(REPLACE "." ";" Geant4_LIST ${Geant4_VERSION})
+list(GET Geant4_LIST 0 Geant4_VERSION_MAJOR)
+message(${Geant4_VERSION_MAJOR})
+if (Geant4_VERSION_MAJOR GREATER 10)
+    message("Geant4's version is 11 or larger")
+    add_compile_definitions(GEANT_VERSION_FROM_11)
+    endif()
 
 #----------------------------------------------------------------------------
 # Locate sources and headers for this project
